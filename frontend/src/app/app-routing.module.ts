@@ -9,12 +9,17 @@ import { AboutComponent } from './components/about/about.component';
 import { TelevisionComponent } from './components/television/television.component';
 import { StatisticsComponent } from './components/statistics/statistics.component';
 import { MempoolBlockComponent } from './components/mempool-block/mempool-block.component';
-import { LatestBlocksComponent } from './components/latest-blocks/latest-blocks.component';
 import { AssetComponent } from './components/asset/asset.component';
 import { AssetsComponent } from './assets/assets.component';
 import { StatusViewComponent } from './components/status-view/status-view.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
+import { LatestBlocksComponent } from './components/latest-blocks/latest-blocks.component';
+import { ApiDocsComponent } from './components/api-docs/api-docs.component';
+import { TermsOfServiceComponent } from './components/terms-of-service/terms-of-service.component';
+import { BisqMasterPageComponent } from './components/bisq-master-page/bisq-master-page.component';
+import { SponsorComponent } from './components/sponsor/sponsor.component';
 
-const routes: Routes = [
+let routes: Routes = [
   {
     path: '',
     component: MasterPageComponent,
@@ -25,7 +30,7 @@ const routes: Routes = [
         children: [
           {
             path: '',
-            component: LatestBlocksComponent
+            component: DashboardComponent,
           },
           {
             path: 'tx/:id',
@@ -42,6 +47,10 @@ const routes: Routes = [
         ],
       },
       {
+        path: 'blocks',
+        component: LatestBlocksComponent,
+      },
+      {
         path: 'graphs',
         component: StatisticsComponent,
       },
@@ -50,9 +59,21 @@ const routes: Routes = [
         component: AboutComponent,
       },
       {
+        path: 'api',
+        component: ApiDocsComponent,
+      },
+      {
+        path: 'terms-of-service',
+        component: TermsOfServiceComponent
+      },
+      {
         path: 'address/:id',
         children: [],
         component: AddressComponent
+      },
+      {
+        path: 'sponsor',
+        component: SponsorComponent,
       },
     ],
   },
@@ -69,7 +90,7 @@ const routes: Routes = [
             children: [
               {
                 path: '',
-                component: LatestBlocksComponent
+                component: DashboardComponent
               },
               {
                 path: 'tx/:id',
@@ -86,12 +107,12 @@ const routes: Routes = [
             ],
           },
           {
-            path: 'graphs',
-            component: StatisticsComponent,
+            path: 'blocks',
+            component: LatestBlocksComponent,
           },
           {
-            path: 'about',
-            component: AboutComponent,
+            path: 'graphs',
+            component: StatisticsComponent,
           },
           {
             path: 'address/:id',
@@ -104,6 +125,10 @@ const routes: Routes = [
           {
             path: 'assets',
             component: AssetsComponent,
+          },
+          {
+            path: 'api',
+            component: ApiDocsComponent,
           },
         ],
       },
@@ -134,7 +159,7 @@ const routes: Routes = [
             children: [
               {
                 path: '',
-                component: LatestBlocksComponent
+                component: DashboardComponent
               },
               {
                 path: 'tx/:id',
@@ -151,17 +176,83 @@ const routes: Routes = [
             ],
           },
           {
-            path: 'graphs',
-            component: StatisticsComponent,
+            path: 'blocks',
+            component: LatestBlocksComponent,
           },
           {
-            path: 'about',
-            component: AboutComponent,
+            path: 'graphs',
+            component: StatisticsComponent,
           },
           {
             path: 'address/:id',
             children: [],
             component: AddressComponent
+          },
+          {
+            path: 'api',
+            component: ApiDocsComponent,
+          },
+        ],
+      },
+      {
+        path: 'tv',
+        component: TelevisionComponent
+      },
+      {
+        path: 'status',
+        component: StatusViewComponent
+      },
+      {
+        path: '**',
+        redirectTo: ''
+      },
+    ]
+  },
+  {
+    path: 'signet',
+    children: [
+      {
+        path: '',
+        component: MasterPageComponent,
+        children: [
+          {
+            path: '',
+            component: StartComponent,
+            children: [
+              {
+                path: '',
+                component: DashboardComponent
+              },
+              {
+                path: 'tx/:id',
+                component: TransactionComponent
+              },
+              {
+                path: 'block/:id',
+                component: BlockComponent
+              },
+              {
+                path: 'mempool-block/:id',
+                component: MempoolBlockComponent
+              },
+            ],
+          },
+          {
+            path: 'blocks',
+            component: LatestBlocksComponent,
+          },
+          {
+            path: 'graphs',
+            component: StatisticsComponent,
+          },
+          {
+            path: 'address/:id',
+            children: [],
+            component: AddressComponent
+          },
+          {
+            path: 'api',
+            component: ApiDocsComponent,
           },
         ],
       },
@@ -198,8 +289,24 @@ const routes: Routes = [
   },
 ];
 
+const browserWindow = window || {};
+// @ts-ignore
+const browserWindowEnv = browserWindow.__env || {};
+
+if (browserWindowEnv && browserWindowEnv.OFFICIAL_BISQ_MARKETS) {
+  routes = [{
+    path: '',
+    component: BisqMasterPageComponent,
+    loadChildren: () => import('./bisq/bisq.module').then(m => m.BisqModule)
+  }];
+}
+
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [RouterModule.forRoot(routes, {
+    initialNavigation: 'enabled',
+    scrollPositionRestoration: 'enabled',
+    anchorScrolling: 'enabled'
+})],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }

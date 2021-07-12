@@ -13,11 +13,115 @@
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
+      "i18n": {
+        "sourceLocale": {
+          "code": "en-US",
+          "baseHref": "/"
+        },
+        "locales": {
+          "ar": {
+            "translation": "src/locale/messages.ar.xlf",
+            "baseHref": "/ar/"
+          },
+          "cs": {
+            "translation": "src/locale/messages.cs.xlf",
+            "baseHref": "/cs/"
+          },
+          "de": {
+            "translation": "src/locale/messages.de.xlf",
+            "baseHref": "/de/"
+          },
+          "es": {
+            "translation": "src/locale/messages.es.xlf",
+            "baseHref": "/es/"
+          },
+          "fa": {
+            "translation": "src/locale/messages.fa.xlf",
+            "baseHref": "/fa/"
+          },
+          "fr": {
+            "translation": "src/locale/messages.fr.xlf",
+            "baseHref": "/fr/"
+          },
+          "ja": {
+            "translation": "src/locale/messages.ja.xlf",
+            "baseHref": "/ja/"
+          },
+          "ka": {
+            "translation": "src/locale/messages.ka.xlf",
+            "baseHref": "/ka/"
+          },
+          "ko": {
+            "translation": "src/locale/messages.ko.xlf",
+            "baseHref": "/ko/"
+          },
+          "it": {
+            "translation": "src/locale/messages.it.xlf",
+            "baseHref": "/it/"
+          },
+          "he": {
+            "translation": "src/locale/messages.he.xlf",
+            "baseHref": "/he/"
+          },
+          "nl": {
+            "translation": "src/locale/messages.nl.xlf",
+            "baseHref": "/nl/"
+          },
+          "nb": {
+            "translation": "src/locale/messages.nb.xlf",
+            "baseHref": "/nb/"
+          },
+          "pl": {
+            "translation": "src/locale/messages.pl.xlf",
+            "baseHref": "/pl/"
+          },
+          "pt": {
+            "translation": "src/locale/messages.pt.xlf",
+            "baseHref": "/pt/"
+          },
+          "sl": {
+            "translation": "src/locale/messages.sl.xlf",
+            "baseHref": "/sl/"
+          },
+          "sv": {
+            "translation": "src/locale/messages.sv.xlf",
+            "baseHref": "/sv/"
+          },
+          "tr": {
+            "translation": "src/locale/messages.tr.xlf",
+            "baseHref": "/tr/"
+          },
+          "uk": {
+            "translation": "src/locale/messages.uk.xlf",
+            "baseHref": "/uk/"
+          },
+          "fi": {
+            "translation": "src/locale/messages.fi.xlf",
+            "baseHref": "/fi/"
+          },
+          "vi": {
+            "translation": "src/locale/messages.vi.xlf",
+            "baseHref": "/vi/"
+          },
+          "hu": {
+            "translation": "src/locale/messages.hu.xlf",
+            "baseHref": "/hu/"
+          },
+          "zh": {
+            "translation": "src/locale/messages.zh.xlf",
+            "baseHref": "/zh/"
+          },
+          "ru": {
+            "translation": "src/locale/messages.ru.xlf",
+            "baseHref": "/ru/"
+          }
+        }
+      },
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/mempool",
+            "outputPath": "dist/mempool/browser",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -25,10 +129,12 @@
             "aot": true,
             "assets": [
               "src/favicon.ico",
-              "src/resources"
+              "src/resources",
+              "src/robots.txt"
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/@fortawesome/fontawesome-svg-core/styles.css"
             ],
             "scripts": [
               "generated-config.js"
@@ -45,7 +151,6 @@
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
-              "extractCss": true,
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,
@@ -72,6 +177,22 @@
           "configurations": {
             "production": {
               "browserTarget": "mempool:build:production"
+            },
+            "local": {
+              "proxyConfig": "proxy.conf.json",
+              "verbose": true
+            },
+            "staging": {
+              "proxyConfig": "proxy.stg.conf.json",
+              "disableHostCheck": true,
+              "host": "0.0.0.0",
+              "verbose": true
+            },
+            "local-prod": {
+              "proxyConfig": "proxy.prod.conf.json",
+              "disableHostCheck": true,
+              "host": "0.0.0.0",
+              "verbose": true
             }
           }
         },
@@ -104,7 +225,8 @@
             "tsConfig": [
               "tsconfig.app.json",
               "tsconfig.spec.json",
-              "e2e/tsconfig.json"
+              "tsconfig.server.json",
+              "cypress/tsconfig.json"
             ],
             "exclude": [
               "**/node_modules/**"
@@ -112,9 +234,69 @@
           }
         },
         "e2e": {
-          "builder": "@angular-devkit/build-angular:protractor",
+          "builder": "@cypress/schematic:cypress",
           "options": {
-            "protractorConfig": "e2e/protractor.conf.js",
+            "devServerTarget": "mempool:serve:local-prod",
+            "watch": true,
+            "headless": false
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "mempool:serve:production"
+            }
+          }
+        },
+        "server": {
+          "builder": "@angular-devkit/build-angular:server",
+          "options": {
+            "outputPath": "dist/mempool/server",
+            "main": "server.ts",
+            "tsConfig": "tsconfig.server.json"
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "media",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "sourceMap": false,
+              "localize": true,
+              "optimization": true
+            }
+          }
+        },
+        "serve-ssr": {
+          "builder": "@nguniversal/builders:ssr-dev-server",
+          "options": {
+            "browserTarget": "mempool:build",
+            "serverTarget": "mempool:server"
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "mempool:build:production",
+              "serverTarget": "mempool:server:production"
+            }
+          }
+        },
+        "prerender": {
+          "builder": "@nguniversal/builders:prerender",
+          "options": {
+            "browserTarget": "mempool:build:production",
+            "serverTarget": "mempool:server:production",
+            "routes": [
+              "/"
+            ]
+          },
+          "configurations": {
+            "production": {}
+          }
+        },
+        "cypress-run": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
             "devServerTarget": "mempool:serve"
           },
           "configurations": {
@@ -122,8 +304,16 @@
               "devServerTarget": "mempool:serve:production"
             }
           }
+        },
+        "cypress-open": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "watch": true,
+            "headless": false
+          }
         }
       }
-    }},
+    }
+  },
   "defaultProject": "mempool"
 }

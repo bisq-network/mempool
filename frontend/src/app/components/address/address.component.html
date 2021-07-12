@@ -1,10 +1,12 @@
 <div class="container-xl">
-  <h1 style="float: left;">Address</h1>
-  <a [routerLink]="['/address/' | relativeUrl, addressString]" style="line-height: 56px; margin-left: 10px;">
-    <span class="d-inline d-lg-none">{{ addressString | shortenString : 24 }}</span>
-    <span class="d-none d-lg-inline">{{ addressString }}</span>
-  </a>
-  <app-clipboard [text]="addressString"></app-clipboard>
+  <h1 i18n="shared.address">Address</h1>
+  <div class="tx-link">
+    <a [routerLink]="['/address/' | relativeUrl, addressString]" >
+      <span class="d-inline d-lg-none">{{ addressString | shortenString : 18 }}</span>
+      <span class="d-none d-lg-inline">{{ addressString }}</span>
+    </a>
+    <app-clipboard [text]="addressString"></app-clipboard>
+  </div>
   <br>
 
   <div class="clearfix"></div>
@@ -13,40 +15,28 @@
     <div class="box">
 
       <div class="row">
-        <div class="col">
+        <div class="col-md">
           <table class="table table-borderless table-striped">
-            <tbody *ngIf="network !== 'liquid'">
+            <tbody>
+              <ng-template [ngIf]="!address.electrum">
+                <tr>
+                  <td i18n="address.total-received">Total received</td>
+                  <td *ngIf="address.chain_stats.funded_txo_sum !== undefined; else confidentialTd"><app-amount [satoshis]="receieved" [noFiat]="true"></app-amount></td>
+                </tr>
+                <tr>
+                  <td i18n="address.total-sent">Total sent</td>
+                  <td *ngIf="address.chain_stats.spent_txo_sum !== undefined; else confidentialTd"><app-amount [satoshis]="sent" [noFiat]="true"></app-amount></td>
+                </tr>
+              </ng-template>
               <tr>
-                <td>Total received</td>
-                <td>{{ receieved / 100000000 | number: '1.8-8' }} <ng-template [ngIf]="network === 'liquid'">L-</ng-template>BTC</td>
-              </tr>
-              <tr>
-                <td>Total sent</td>
-                <td>{{ sent / 100000000 | number: '1.8-8' }} <ng-template [ngIf]="network === 'liquid'">L-</ng-template>BTC</td>
-              </tr>
-              <tr>
-                <td>Balance</td>
-                <td>{{ (receieved - sent) / 100000000 | number: '1.8-8' }} <ng-template [ngIf]="network === 'liquid'">L-</ng-template>BTC (<app-fiat [value]="receieved - sent"></app-fiat>)</td>
-              </tr>
-            </tbody>
-            <tbody *ngIf="network === 'liquid'">
-              <tr>
-                <td>Total received</td>
-                <td>Confidential</td>
-              </tr>
-              <tr>
-                <td>Total sent</td>
-                <td>Confidential</td>
-              </tr>
-              <tr>
-                <td>Balance</td>
-                <td>Confidential</td>
+                <td i18n="address.balance">Balance</td>
+                <td *ngIf="address.chain_stats.funded_txo_sum !== undefined; else confidentialTd"><app-amount [satoshis]="receieved - sent" [noFiat]="true"></app-amount> <span class="fiat"><app-fiat [value]="receieved - sent"></app-fiat></span></td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="w-100 d-block d-md-none"></div>
-        <div class="col qrcode-col">
+        <div class="col-md qrcode-col">
           <div class="qr-wrapper">
             <app-qrcode [data]="address.address"></app-qrcode>
           </div>
@@ -57,7 +47,11 @@
 
     <br>
 
-    <h2><ng-template [ngIf]="transactions?.length">{{ (transactions?.length | number) || '?' }} of </ng-template>{{ txCount | number }} transactions</h2>
+    <h2>
+      <ng-template [ngIf]="!transactions?.length">&nbsp;</ng-template>
+      <ng-template i18n="X of X Address Transaction" [ngIf]="transactions?.length === 1">{{ (transactions?.length | number) || '?' }} of {{ txCount | number }} transaction</ng-template>
+      <ng-template i18n="X of X Address Transactions (Plural)" [ngIf]="transactions?.length > 1">{{ (transactions?.length | number) || '?' }} of {{ txCount | number }} transactions</ng-template>
+    </h2>
 
     <app-transactions-list [transactions]="transactions" [showConfirmations]="true" (loadMore)="loadMore()"></app-transactions-list>
 
@@ -77,6 +71,19 @@
             </div>
           </div>
         </div>
+
+        <ng-container *ngIf="addressLoadingStatus$ | async as addressLoadingStatus">
+          <br>
+          <div class="progress progress-dark">
+            <div class="progress-bar progress-darklight" role="progressbar" [ngStyle]="{'width': addressLoadingStatus + '%' }"></div>
+          </div>
+        </ng-container>
+
+      </ng-template>
+
+      <ng-template [ngIf]="retryLoadmore">
+        <br>
+        <button type="button" class="btn btn-outline-info btn-sm" (click)="loadMore()"><fa-icon [icon]="['fas', 'redo-alt']" [fixedWidth]="true"></fa-icon></button>
       </ng-template>
     </div>
 
@@ -112,12 +119,27 @@
 
   <ng-template [ngIf]="error">
     <div class="text-center">
-      Error loading address data.
+      <span i18n="address.error.loading-address-data">Error loading address data.</span>
       <br>
-      <i>{{ error.error }}</i>
+      <ng-template #displayServerError><i>{{ error.error }}</i></ng-template>
+      <ng-template [ngIf]="error.status === 413 || error.status === 405" [ngIfElse]="displayServerError">
+        <ng-container i18n="Electrum server limit exceeded error">
+          <i>The number of transactions on this address exceeds the Electrum server limit</i>
+          <br><br>
+          Consider viewing this address on the official Mempool website instead:
+        </ng-container>
+        <br>
+        <a href="https://mempool.space/address/{{ addressString }}" target="_blank">https://mempool.space/address/{{ addressString }}</a>
+        <br>
+        <a href="http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/address/{{ addressString }}" target="_blank">http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/address/{{ addressString }}</a>
+      </ng-template>
     </div>
   </ng-template>
 
 </div>
 
 <br>
+
+<ng-template #confidentialTd>
+  <td i18n="shared.confidential">Confidential</td>
+</ng-template>

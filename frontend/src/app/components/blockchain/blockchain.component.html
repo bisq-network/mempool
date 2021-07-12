@@ -1,19 +1,9 @@
 <div class="text-center" class="blockchain-wrapper">
   <div class="position-container">
-
-    <span [hidden]="isLoading">
-      <app-mempool-blocks></app-mempool-blocks>
-      <app-blockchain-blocks></app-blockchain-blocks>
+    <span>
+      <app-mempool-blocks [isLoading$]="isLoading$"></app-mempool-blocks>
+      <app-blockchain-blocks [isLoading$]="isLoading$"></app-blockchain-blocks>
       <div id="divider"></div>
     </span>
-
-    <ng-template [ngIf]="isLoading">
-      <div class="loading-block">
-        <h3>Waiting for blocks...</h3>
-        <br>
-        <div class="spinner-border text-light"></div>
-      </div>
-    </ng-template>
-
   </div>
 </div>

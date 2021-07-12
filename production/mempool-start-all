@@ -1,9 +1,8 @@
 #!/usr/local/bin/zsh
-for site in mainnet liquid testnet
+export NVM_DIR="$HOME/.nvm"
+source "$NVM_DIR/nvm.sh"
+for site in mainnet liquid testnet bisq signet
 do
-    cd "${HOME}/${site}/backend/"
-    screen -dmS "${site}" sh -c 'while true;do npm run start;sleep 1;done'
+    cd "${HOME}/${site}/backend/" && \
+    screen -dmS "${site}" sh -c 'while true;do npm run start-production;sleep 1;done'
 done
-
-#cd "${HOME}/webhook/"
-#screen -dmS webhook ./start

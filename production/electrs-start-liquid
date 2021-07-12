@@ -1,7 +1,7 @@
 #!/usr/local/bin/zsh
 cd /electrs
-source $HOME/.cargo/env
-export PATH=$HOME/.cargo/bin:$PATH
+#source $HOME/.cargo/env
+#export PATH=$HOME/.cargo/bin:$PATH
 
 until false
 do
@@ -12,6 +12,7 @@ do
 		-- \
 		-vvv \
 		--address-search \
+		--cors '*' \
 		--network liquid \
 		--daemon-dir /elements \
 		--http-addr '[::]:3001' \

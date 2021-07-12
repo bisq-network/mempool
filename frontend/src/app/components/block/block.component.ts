@@ -2,12 +2,12 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { ElectrsApiService } from '../../services/electrs-api.service';
-import { switchMap, tap, debounceTime, catchError } from 'rxjs/operators';
+import { switchMap, tap, debounceTime, catchError, map } from 'rxjs/operators';
 import { Block, Transaction, Vout } from '../../interfaces/electrs.interface';
-import { of, Subscription } from 'rxjs';
+import { Observable, of, Subscription } from 'rxjs';
 import { StateService } from '../../services/state.service';
 import { SeoService } from 'src/app/services/seo.service';
-import { env } from 'src/app/app.constants';
+import { WebsocketService } from 'src/app/services/websocket.service';
 
 @Component({
   selector: 'app-block',
@@ -30,7 +30,9 @@ export class BlockComponent implements OnInit, OnDestroy {
   paginationMaxSize: number;
   coinbaseTx: Transaction;
   page = 1;
-  itemsPerPage = env.ELCTRS_ITEMS_PER_PAGE;
+  itemsPerPage: number;
+  txsLoadingStatus$: Observable<number>;
+  showDetails = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -39,11 +41,20 @@ export class BlockComponent implements OnInit, OnDestroy {
     private electrsApiService: ElectrsApiService,
     private stateService: StateService,
     private seoService: SeoService,
+    private websocketService: WebsocketService,
   ) { }
 
   ngOnInit() {
-    this.paginationMaxSize = window.matchMedia('(max-width: 700px)').matches ? 3 : 5;
+    this.websocketService.want(['blocks', 'mempool-blocks']);
+    this.paginationMaxSize = window.matchMedia('(max-width: 670px)').matches ? 3 : 5;
     this.network = this.stateService.network;
+    this.itemsPerPage = this.stateService.env.ITEMS_PER_PAGE;
+
+    this.txsLoadingStatus$ = this.route.paramMap
+      .pipe(
+        switchMap(() => this.stateService.loadingIndicators$),
+        map((indicators) => indicators['blocktxs-' + this.blockHash] !== undefined ? indicators['blocktxs-' + this.blockHash] : 0)
+      );
 
     this.subscription = this.route.paramMap
     .pipe(
@@ -92,13 +103,13 @@ export class BlockComponent implements OnInit, OnDestroy {
       tap((block: Block) => {
         this.block = block;
         this.blockHeight = block.height;
-        this.seoService.setTitle('Block: #' + block.height + ': ' + block.id, true);
+        this.seoService.setTitle($localize`:@@block.component.browser-title:Block ${block.height}:BLOCK_HEIGHT:: ${block.id}:BLOCK_ID:`);
         this.isLoadingBlock = false;
         if (block.coinbaseTx) {
           this.coinbaseTx = block.coinbaseTx;
         }
         this.setBlockSubsidy();
-        if (block.reward) {
+        if (block.reward !== undefined) {
           this.fees = block.reward / 100000000 - this.blockSubsidy;
         }
         this.stateService.markBlock$.next({ blockHeight: this.blockHeight });
@@ -134,6 +145,14 @@ export class BlockComponent implements OnInit, OnDestroy {
 
     this.stateService.networkChanged$
       .subscribe((network) => this.network = network);
+
+    this.route.queryParams.subscribe((params) => {
+      if (params.showDetails === 'true') {
+        this.showDetails = true;
+      } else {
+        this.showDetails = false;
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -164,5 +183,41 @@ export class BlockComponent implements OnInit, OnDestroy {
         this.transactions = transactions;
         this.isLoadingTransactions = false;
       });
+  }
+
+  toggleShowDetails() {
+    if (this.showDetails) {
+      this.showDetails = false;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { showDetails: false },
+        queryParamsHandling: 'merge',
+        fragment: 'block'
+      });
+    } else {
+      this.showDetails = true;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { showDetails: true },
+        queryParamsHandling: 'merge',
+        fragment: 'details'
+      });
+    }
+  }
+
+  hasTaproot(version: number): boolean {
+    const versionBit = 2; // Taproot
+    return (Number(version) & (1 << versionBit)) === (1 << versionBit);
+  }
+
+  displayTaprootStatus(): boolean {
+    if (this.stateService.network !== '') {
+      return false;
+    }
+    return this.block && this.block.height > 681393 && (new Date().getTime() / 1000) < 1628640000;
+  }
+
+  onResize(event: any) {
+    this.paginationMaxSize = event.target.innerWidth < 670 ? 3 : 5;
   }
 }

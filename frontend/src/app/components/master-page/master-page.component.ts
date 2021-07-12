@@ -1,34 +1,28 @@
-import { Component, OnInit, HostListener } from '@angular/core';
-import { StateService } from '../../services/state.service';
-import { env } from 'src/app/app.constants';
+import { Component, OnInit } from '@angular/core';
+import { Env, StateService } from '../../services/state.service';
+import { Observable, merge, of } from 'rxjs';
 
 @Component({
   selector: 'app-master-page',
   templateUrl: './master-page.component.html',
-  styleUrls: ['./master-page.component.scss']
+  styleUrls: ['./master-page.component.scss'],
 })
 export class MasterPageComponent implements OnInit {
-  network = '';
-  tvViewRoute = '/tv';
-  env = env;
-
+  env: Env;
+  network$: Observable<string>;
+  connectionState$: Observable<number>;
   navCollapsed = false;
-  connectionState = 2;
+  isMobile = window.innerWidth <= 767.98;
+  officialMempoolSpace = this.stateService.env.OFFICIAL_MEMPOOL_SPACE;
 
   constructor(
     private stateService: StateService,
   ) { }
 
   ngOnInit() {
-    this.stateService.connectionState$
-      .subscribe((state) => {
-        this.connectionState = state;
-      });
-
-    this.stateService.networkChanged$
-      .subscribe((network) => {
-        this.network = network;
-      });
+    this.env = this.stateService.env;
+    this.connectionState$ = this.stateService.connectionState$;
+    this.network$ = merge(of(''), this.stateService.networkChanged$);
   }
 
   collapse(): void {

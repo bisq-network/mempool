@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, OnChanges, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { AssetsService } from 'src/app/services/assets.service';
 import { Transaction } from 'src/app/interfaces/electrs.interface';
 
@@ -6,6 +6,7 @@ import { Transaction } from 'src/app/interfaces/electrs.interface';
   selector: 'app-miner',
   templateUrl: './miner.component.html',
   styleUrls: ['./miner.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MinerComponent implements OnChanges {
   @Input() coinbaseTransaction: Transaction;
@@ -16,6 +17,7 @@ export class MinerComponent implements OnChanges {
 
   constructor(
     private assetsService: AssetsService,
+    private cd: ChangeDetectorRef,
   ) { }
 
   ngOnChanges() {
@@ -37,7 +39,7 @@ export class MinerComponent implements OnChanges {
 
         if (pools.payout_addresses[vout.scriptpubkey_address]) {
             this.miner = pools.payout_addresses[vout.scriptpubkey_address].name;
-            this.title = 'Identified by payout address: ' + vout.scriptpubkey_address;
+            this.title = $localize`:@@miner-identified-by-payout:Identified by payout address: '${vout.scriptpubkey_address}:PAYOUT_ADDRESS:'`;
             this.url = pools.payout_addresses[vout.scriptpubkey_address].link;
             break;
         }
@@ -47,7 +49,7 @@ export class MinerComponent implements OnChanges {
             const coinbaseAscii = this.hex2ascii(this.coinbaseTransaction.vin[0].scriptsig);
             if (coinbaseAscii.indexOf(tag) > -1) {
               this.miner = pools.coinbase_tags[tag].name;
-              this.title = 'Identified by coinbase tag: \'' + tag + '\'';
+              this.title = $localize`:@@miner-identified-by-coinbase:Identified by coinbase tag: '${tag}:TAG:'`;
               this.url = pools.coinbase_tags[tag].link;
               break;
             }
@@ -56,6 +58,7 @@ export class MinerComponent implements OnChanges {
       }
 
       this.loading = false;
+      this.cd.markForCheck();
     });
   }
 

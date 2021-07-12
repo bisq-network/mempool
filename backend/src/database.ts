@@ -1,13 +1,14 @@
-const config = require('../mempool-config.json');
+import config from './config';
 import { createPool } from 'mysql2/promise';
+import logger from './logger';
 
 export class DB {
   static pool = createPool({
-    host: config.DB_HOST,
-    port: config.DB_PORT,
-    database: config.DB_DATABASE,
-    user: config.DB_USER,
-    password: config.DB_PASSWORD,
+    host: config.DATABASE.HOST,
+    port: config.DATABASE.PORT,
+    database: config.DATABASE.DATABASE,
+    user: config.DATABASE.USERNAME,
+    password: config.DATABASE.PASSWORD,
     connectionLimit: 10,
     supportBigNumbers: true,
   });
@@ -16,11 +17,10 @@ export class DB {
 export async function checkDbConnection() {
   try {
     const connection = await DB.pool.getConnection();
-    console.log('MySQL connection established.');
+    logger.info('Database connection established.');
     connection.release();
   } catch (e) {
-    console.log('Could not connect to MySQL.');
-    console.log(e);
+    logger.err('Could not connect to database: ' + e.message || e);
     process.exit(1);
   }
 }

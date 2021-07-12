@@ -1,37 +1,50 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { ElectrsApiService } from '../../services/electrs-api.service';
 import { StateService } from '../../services/state.service';
 import { Block } from '../../interfaces/electrs.interface';
-import { Subscription } from 'rxjs';
-import { SeoService } from 'src/app/services/seo.service';
+import { Subscription, Observable, merge, of } from 'rxjs';
+import { SeoService } from '../../services/seo.service';
+import { WebsocketService } from 'src/app/services/websocket.service';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-latest-blocks',
   templateUrl: './latest-blocks.component.html',
   styleUrls: ['./latest-blocks.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LatestBlocksComponent implements OnInit, OnDestroy {
-  network = '';
-
+  network$: Observable<string>;
+  error: any;
   blocks: any[] = [];
   blockSubscription: Subscription;
   isLoading = true;
   interval: any;
+  blocksLoadingStatus$: Observable<number>;
 
   latestBlockHeight: number;
 
-  heightOfPageUntilBlocks = 430;
+  heightOfPageUntilBlocks = 150;
   heightOfBlocksTableChunk = 470;
 
   constructor(
     private electrsApiService: ElectrsApiService,
     private stateService: StateService,
     private seoService: SeoService,
+    private websocketService: WebsocketService,
+    private cd: ChangeDetectorRef,
   ) { }
 
   ngOnInit() {
-    this.seoService.resetTitle();
-    this.stateService.networkChanged$.subscribe((network) => this.network = network);
+    this.seoService.setTitle($localize`:@@f4cba7faeb126346f09cc6af30124f9a343f7a28:Blocks`);
+    this.websocketService.want(['blocks']);
+
+    this.network$ = merge(of(''), this.stateService.networkChanged$);
+
+    this.blocksLoadingStatus$ = this.stateService.loadingIndicators$
+      .pipe(
+        map((indicators) => indicators['blocks'] !== undefined ? indicators['blocks'] : 0)
+      );
 
     this.blockSubscription = this.stateService.blocks$
       .subscribe(([block]) => {
@@ -57,6 +70,7 @@ export class LatestBlocksComponent implements OnInit, OnDestroy {
 
         this.blocks.pop();
         this.blocks.unshift(block);
+        this.cd.markForCheck();
       });
 
     this.loadInitialBlocks();
@@ -72,6 +86,7 @@ export class LatestBlocksComponent implements OnInit, OnDestroy {
       .subscribe((blocks) => {
         this.blocks = blocks;
         this.isLoading = false;
+        this.error = undefined;
 
         this.latestBlockHeight = blocks[0].height;
 
@@ -80,6 +95,13 @@ export class LatestBlocksComponent implements OnInit, OnDestroy {
         if (chunks > 0) {
           this.loadMore(chunks);
         }
+        this.cd.markForCheck();
+      },
+      (error) => {
+        console.log(error);
+        this.error = error;
+        this.isLoading = false;
+        this.cd.markForCheck();
       });
   }
 
@@ -92,11 +114,19 @@ export class LatestBlocksComponent implements OnInit, OnDestroy {
       .subscribe((blocks) => {
         this.blocks = this.blocks.concat(blocks);
         this.isLoading = false;
+        this.error = undefined;
 
         const chunksLeft = chunks - 1;
         if (chunksLeft > 0) {
           this.loadMore(chunksLeft);
         }
+        this.cd.markForCheck();
+      },
+      (error) => {
+        console.log(error);
+        this.error = error;
+        this.isLoading = false;
+        this.cd.markForCheck();
       });
   }
 

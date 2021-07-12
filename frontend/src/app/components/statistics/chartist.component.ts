@@ -1,15 +1,19 @@
 import {
   Component,
   ElementRef,
+  Inject,
   Input,
   OnChanges,
   OnDestroy,
   OnInit,
+  PLATFORM_ID,
   SimpleChanges,
   ViewEncapsulation
 } from '@angular/core';
 
-import * as Chartist from 'chartist';
+import { isPlatformBrowser } from '@angular/common';
+
+import * as Chartist from '@mempool/chartist';
 
 /**
  * Possible chart types
@@ -63,16 +67,25 @@ export class ChartistComponent implements OnInit, OnChanges, OnDestroy {
   // @ts-ignore
   @Input() public events: ChartEvent;
 
+  isBrowser: boolean = isPlatformBrowser(this.platformId);
+
   // @ts-ignore
   public chart: ChartInterfaces;
 
-  private element: HTMLElement;
+  private element: HTMLElement;  
 
-  constructor(element: ElementRef) {
+  constructor(
+    element: ElementRef,
+    @Inject(PLATFORM_ID) private platformId: any,
+  ) {
     this.element = element.nativeElement;
   }
 
   public ngOnInit(): Promise<ChartInterfaces> {
+    if (!this.isBrowser) {
+      return;
+    }
+
     if (!this.type || !this.data) {
       Promise.reject('Expected at least type and data.');
     }
@@ -87,6 +100,10 @@ export class ChartistComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
     this.update(changes);
   }
 
@@ -194,7 +211,7 @@ export class ChartistComponent implements OnInit, OnChanges, OnDestroy {
     };
   };
 
-}(window, document, Chartist));
+}(null, null, Chartist));
 
 
 /**
@@ -278,7 +295,7 @@ export class ChartistComponent implements OnInit, OnChanges, OnDestroy {
     };
   };
 
-}(window, document, Chartist));
+}(null, null, Chartist));
 
 const defaultOptions = {
     className: '',
@@ -292,6 +309,7 @@ const defaultOptions = {
 
 Chartist.plugins.legend = function (options: any) {
     let cachedDOMPosition;
+    let cacheInactiveLegends: { [key:number]: boolean } = {};
     // Catch invalid options
     if (options && options.position) {
         if (!(options.position === 'top' || options.position === 'bottom' || options.position instanceof HTMLElement)) {
@@ -313,6 +331,17 @@ Chartist.plugins.legend = function (options: any) {
     }
 
     return function legend(chart: any) {
+
+      var isSelfUpdate = false;
+
+      chart.on('created', function (data: any) {
+
+        const useLabels = chart instanceof Chartist.Pie && chart.data.labels && chart.data.labels.length;
+        const legendNames = getLegendNames(useLabels);
+        var dirtyChartData = (chart.data.series.length < legendNames.length);
+
+        if (isSelfUpdate || dirtyChartData)
+            return;
 
         function removeLegendElement() {
           const legendElement = chart.container.querySelector('.ct-legend');
@@ -338,6 +367,10 @@ Chartist.plugins.legend = function (options: any) {
         function createLegendElement() {
             const legendElement = document.createElement('ul');
             legendElement.className = 'ct-legend';
+            const inverted = localStorage.getItem('inverted-graph') === 'true';
+            if (inverted){
+                legendElement.classList.add('inverted');
+            }
             if (chart instanceof Chartist.Pie) {
                 legendElement.classList.add('ct-legend-inside');
             }
@@ -399,6 +432,17 @@ Chartist.plugins.legend = function (options: any) {
             }
         }
 
+        function updateChart(newSeries: any, newLabels:any, useLabels: any) {
+            chart.data.series = newSeries;
+            if (useLabels) {
+                chart.data.labels = newLabels;
+            }
+
+            isSelfUpdate = true;
+            chart.update();
+            isSelfUpdate = false;
+        }
+
         function addClickHandler(legendElement: any, legends: any, seriesMetadata: any, useLabels: any) {
             legendElement.addEventListener('click', function(e: any) {
                 const li = e.target;
@@ -409,23 +453,29 @@ Chartist.plugins.legend = function (options: any) {
                 const legendIndex = parseInt(li.getAttribute('data-legend'));
                 const legend = legends[legendIndex];
 
-                if (!legend.active) {
-                    legend.active = true;
-                    li.classList.remove('inactive');
-                } else {
-                    legend.active = false;
-                    li.classList.add('inactive');
+                const activateLegend = (_legendIndex: number): void => {
+                    legends[_legendIndex].active = true;
+                    legendElement.childNodes[_legendIndex].classList.remove('inactive');
 
-                    const activeCount = legends.filter(function(legend: any) { return legend.active; }).length;
-                    if (!options.removeAll && activeCount == 0) {
-                        // If we can't disable all series at the same time, let's
-                        // reenable all of them:
-                        for (let i = 0; i < legends.length; i++) {
-                            legends[i].active = true;
-                            legendElement.childNodes[i].classList.remove('inactive');
-                        }
+                    cacheInactiveLegends[_legendIndex] = false;
+                }
+
+                const deactivateLegend = (_legendIndex: number): void => {
+                    legends[_legendIndex].active = false;
+                    legendElement.childNodes[_legendIndex].classList.add('inactive');
+                    cacheInactiveLegends[_legendIndex] = true;
+                }
+
+                for (let i = legends.length - 1; i >= 0; i--) {
+                    if (i >= legendIndex) {
+                        if (!legend.active) activateLegend(i);
+                    } else {
+                        if (legend.active) deactivateLegend(i);
                     }
                 }
+                // Make sure all values are undefined (falsy) when clicking the first legend
+                // After clicking the first legend all indices should be falsy
+                if (legendIndex === 0) cacheInactiveLegends = {};
 
                 const newSeries = [];
                 const newLabels = [];
@@ -437,12 +487,7 @@ Chartist.plugins.legend = function (options: any) {
                     }
                 }
 
-                chart.data.series = newSeries;
-                if (useLabels) {
-                    chart.data.labels = newLabels;
-                }
-
-                chart.update();
+                updateChart(newSeries, newLabels, useLabels);
 
                 if (options.onClick) {
                     options.onClick(chart, e);
@@ -453,13 +498,14 @@ Chartist.plugins.legend = function (options: any) {
         removeLegendElement();
 
         const legendElement = createLegendElement();
-        const useLabels = chart instanceof Chartist.Pie && chart.data.labels && chart.data.labels.length;
-        const legendNames = getLegendNames(useLabels);
         const seriesMetadata = initSeriesMetadata(useLabels);
         const legends: any = [];
 
         // Check if given class names are viable to append to legends
         const classNamesViable = Array.isArray(options.classNames) && options.classNames.length === legendNames.length;
+
+        var activeSeries = [];
+        var activeLabels = [];
 
         // Loop through all legends to set each name in a list item.
         legendNames.forEach(function (legend: any, i: any) {
@@ -467,6 +513,14 @@ Chartist.plugins.legend = function (options: any) {
             const legendSeries = legend.series || [i];
 
             const li = createNameElement(i, legendText, classNamesViable);
+            // If the value is undefined or false, isActive is true
+            const isActive: boolean = !cacheInactiveLegends[i];
+            if (isActive) {
+              activeSeries.push(seriesMetadata[i].data);
+              activeLabels.push(seriesMetadata[i].label);
+            } else {
+              li.classList.add('inactive');
+            }
             legendElement.appendChild(li);
 
             legendSeries.forEach(function(seriesIndex: any) {
@@ -476,18 +530,21 @@ Chartist.plugins.legend = function (options: any) {
             legends.push({
                 text: legendText,
                 series: legendSeries,
-                active: true
+                active: isActive
             });
+
         });
 
-        chart.on('created', function (data: any) {
-            appendLegendToDOM(legendElement);
-        });
+        appendLegendToDOM(legendElement);
 
         if (options.clickable) {
             setSeriesClassNames();
             addClickHandler(legendElement, legends, seriesMetadata, useLabels);
         }
+
+        updateChart(activeSeries, activeLabels, useLabels);
+
+      });
     };
 };
 

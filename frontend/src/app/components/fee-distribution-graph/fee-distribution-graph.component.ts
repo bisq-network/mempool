@@ -1,10 +1,11 @@
-import { Component, Input, OnChanges } from '@angular/core';
-import * as Chartist from 'chartist';
+import { Component, Input, OnChanges, ChangeDetectionStrategy } from '@angular/core';
+import * as Chartist from '@mempool/chartist';
 
 @Component({
   selector: 'app-fee-distribution-graph',
   templateUrl: './fee-distribution-graph.component.html',
-  styleUrls: ['./fee-distribution-graph.component.scss']
+  styleUrls: ['./fee-distribution-graph.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FeeDistributionGraphComponent implements OnChanges {
   @Input() feeRange;

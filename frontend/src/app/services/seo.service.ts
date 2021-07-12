@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Title } from '@angular/platform-browser';
+import { Title, Meta } from '@angular/platform-browser';
 import { StateService } from './state.service';
 
 @Injectable({
@@ -7,24 +7,30 @@ import { StateService } from './state.service';
 })
 export class SeoService {
   network = '';
-  defaultTitle = 'mempool - Bitcoin Explorer';
 
   constructor(
     private titleService: Title,
+    private metaService: Meta,
     private stateService: StateService,
   ) {
     this.stateService.networkChanged$.subscribe((network) => this.network = network);
   }
 
-  setTitle(newTitle: string, prependNetwork = false) {
-    let networkName = '';
-    if (prependNetwork && this.network !== '') {
-      networkName = this.network.substr(0, 1).toUpperCase() + this.network.substr(1) + ' ';
-    }
-    this.titleService.setTitle(networkName + newTitle + ' - ' + this.defaultTitle);
+  setTitle(newTitle: string): void {
+    this.titleService.setTitle(newTitle + ' - ' + this.getTitle());
+    this.metaService.updateTag({ property: 'og:title', content: newTitle});
   }
 
-  resetTitle() {
-    this.titleService.setTitle(this.defaultTitle);
+  resetTitle(): void {
+    this.titleService.setTitle(this.getTitle());
+    this.metaService.updateTag({ property: 'og:title', content: this.getTitle()});
+  }
+
+  getTitle(): string {
+    return 'mempool - ' + (this.network ? this.ucfirst(this.network) : 'Bitcoin') + ' Explorer';
+  }
+
+  ucfirst(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
   }
 }

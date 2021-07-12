@@ -11,6 +11,7 @@ import { of, merge, Subscription, combineLatest } from 'rxjs';
 import { SeoService } from 'src/app/services/seo.service';
 import { environment } from 'src/environments/environment';
 import { AssetsService } from 'src/app/services/assets.service';
+import { moveDec } from 'src/app/bitcoin.utils';
 
 @Component({
   selector: 'app-asset',
@@ -22,6 +23,7 @@ export class AssetComponent implements OnInit, OnDestroy {
   nativeAssetId = environment.nativeAssetId;
 
   asset: Asset;
+  blindedIssuance: boolean;
   assetContract: any;
   assetString: string;
   isLoadingAsset = true;
@@ -53,7 +55,7 @@ export class AssetComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    this.websocketService.want(['blocks', 'stats', 'mempool-blocks']);
+    this.websocketService.want(['blocks', 'mempool-blocks']);
     this.stateService.networkChanged$.subscribe((network) => this.network = network);
 
     this.mainSubscription = this.route.paramMap
@@ -68,7 +70,7 @@ export class AssetComponent implements OnInit, OnDestroy {
           this.transactions = null;
           document.body.scrollTo(0, 0);
           this.assetString = params.get('id') || '';
-          this.seoService.setTitle('Asset: ' + this.assetString, true);
+          this.seoService.setTitle($localize`:@@asset.component.asset-browser-title:Asset: ${this.assetString}:INTERPOLATION:`);
 
           return merge(
             of(true),
@@ -97,6 +99,10 @@ export class AssetComponent implements OnInit, OnDestroy {
         switchMap(([asset, assetsData]) => {
           this.asset = asset;
           this.assetContract = assetsData[this.asset.asset_id];
+          if (!this.assetContract) {
+            this.assetContract = [null, '?', 'Unknown', 0];
+          }
+          this.blindedIssuance = this.asset.chain_stats.has_blinded_issuances || this.asset.mempool_stats.has_blinded_issuances;
           this.isNativeAsset = asset.asset_id === this.nativeAssetId;
           this.updateChainStats();
           this.websocketService.startTrackAsset(asset.asset_id);
@@ -187,6 +193,10 @@ export class AssetComponent implements OnInit, OnDestroy {
     // this.sent = this.asset.chain_stats.spent_txo_sum + this.asset.mempool_stats.spent_txo_sum;
     this.txCount = this.asset.chain_stats.tx_count + this.asset.mempool_stats.tx_count;
     this.totalConfirmedTxCount = this.asset.chain_stats.tx_count;
+  }
+
+  formatAmount(value: number, precision = 0): number | string {
+    return moveDec(value, -precision);
   }
 
   ngOnDestroy() {

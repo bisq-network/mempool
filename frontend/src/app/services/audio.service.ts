@@ -4,20 +4,25 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class AudioService {
-  audio = new Audio();
+  audio: HTMLAudioElement;
   isPlaying = false;
 
-  constructor() { }
+  constructor() {
+    try {
+      this.audio = new Audio();
+    } catch (e) {}
+  }
 
   public playSound(name: 'magic' | 'chime' | 'cha-ching' | 'bright-harmony') {
-    if (this.isPlaying) {
+    if (this.isPlaying || !this.audio) {
       return;
     }
     this.isPlaying = true;
     this.audio.src = '../../../resources/sounds/' + name + '.mp3';
     this.audio.load();
+    this.audio.volume = 0.65; // 65% volume
     this.audio.play().catch((e) => {
-      console.log('Play sound failed', e);
+      console.log('Play sound failed' + e);
     });
     setTimeout(() => this.isPlaying = false, 100);
   }

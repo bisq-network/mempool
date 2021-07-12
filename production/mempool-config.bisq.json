@@ -1,0 +1,34 @@
+{
+  "MEMPOOL": {
+    "NETWORK": "bisq",
+    "BACKEND": "esplora",
+    "HTTP_PORT": 8996,
+    "MINED_BLOCKS_CACHE": 144,
+    "SPAWN_CLUSTER_PROCS": 4,
+    "API_URL_PREFIX": "/api/v1/",
+    "POLL_RATE_MS": 2000
+  },
+  "CORE_RPC": {
+    "USERNAME": "foo",
+    "PASSWORD": "bar"
+  },
+  "ESPLORA": {
+    "REST_API_URL": "http://127.0.0.1:4000"
+  },
+  "DATABASE": {
+    "ENABLED": false,
+    "HOST": "127.0.0.1",
+    "PORT": 3306,
+    "USERNAME": "bmempool",
+    "PASSWORD": "bmempool",
+    "DATABASE": "bmempool"
+  },
+  "STATISTICS": {
+    "ENABLED": true,
+    "TX_PER_SECOND_SAMPLE_PERIOD": 150
+  },
+  "BISQ": {
+    "ENABLED": true,
+    "DATA_PATH": "/bisq/statsnode-data/btc_mainnet/db"
+  }
+}

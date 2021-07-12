@@ -11,6 +11,26 @@ export interface Transaction {
 
   // Custom properties
   firstSeen?: number;
+  feePerVsize?: number;
+  effectiveFeePerVsize?: number;
+  ancestors?: Ancestor[];
+  bestDescendant?: BestDescendant | null;
+  cpfpChecked?: boolean;
+  deleteAfter?: number;
+  _unblinded?: any;
+  _deduced?: boolean;
+}
+
+interface Ancestor {
+  txid: string;
+  weight: number;
+  fee: number;
+}
+
+interface BestDescendant {
+  txid: string;
+  weight: number;
+  fee: number;
 }
 
 export interface Recent {
@@ -80,7 +100,7 @@ export interface Block {
   version: number;
   timestamp: number;
   bits: number;
-  nounce: number;
+  nonce: number;
   difficulty: number;
   merkle_root: string;
   tx_count: number;
@@ -98,6 +118,7 @@ export interface Block {
 }
 
 export interface Address {
+  electrum?: boolean;
   address: string;
   chain_stats: ChainStats;
   mempool_stats: MempoolStats;
@@ -135,6 +156,19 @@ export interface Asset {
   status: Status;
   chain_stats: AssetStats;
   mempool_stats: AssetStats;
+}
+
+export interface AssetExtended extends Asset {
+  name: string;
+  ticker: string;
+  precision: number;
+  entity: Entity;
+  version: number;
+  issuer_pubkey: string;
+}
+
+export interface Entity {
+  domain: string;
 }
 
 interface IssuanceTxin {

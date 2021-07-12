@@ -1,7 +1,13 @@
+.container-graph {
+  padding: 0px 15px;
+}
+
 .card-header {
   border-bottom: 0;
-  background-color: none;
-  font-size: 20px;
+  font-size: 18px;
+  @media (min-width: 465px) {
+    font-size: 20px;
+  }
 }
 
 .card {
@@ -13,4 +19,41 @@
   width: 22px;
   height: 22px;
   margin-right: 10px;
+  order: 2;
+  margin-left: 10px;
+  @media (min-width: 653px) {
+    margin-left: 0px;
+    order: 1;
+  }
+}
+
+.card-body {
+  @media (max-width: 767.98px) {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.formRadioGroup{
+  margin-top: 6px;
+  display: flex;
+  @media (min-width: 653px) {
+    display: block;
+    float: right;
+    margin-top: 0px;
+  }
+  .btn-sm {
+    font-size: 10px;
+    @media (min-width: 768px) {
+      font-size: 14px;
+    }
+  }
+}
+
+.loading{
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  height: 80vh;
+  justify-content: center;
 }

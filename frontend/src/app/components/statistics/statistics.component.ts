@@ -9,9 +9,10 @@ import { OptimizedMempoolStats } from '../../interfaces/node-api.interface';
 import { WebsocketService } from '../../services/websocket.service';
 import { ApiService } from '../../services/api.service';
 
-import * as Chartist from 'chartist';
+import * as Chartist from '@mempool/chartist';
 import { StateService } from 'src/app/services/state.service';
 import { SeoService } from 'src/app/services/seo.service';
+import { StorageService } from 'src/app/services/storage.service';
 
 @Component({
   selector: 'app-statistics',
@@ -30,10 +31,11 @@ export class StatisticsComponent implements OnInit {
   mempoolUnconfirmedTransactionsData: any;
   mempoolTransactionsWeightPerSecondData: any;
 
-  mempoolVsizeFeesOptions: any;
   transactionsWeightPerSecondOptions: any;
 
   radioGroupForm: FormGroup;
+  inverted: boolean;
+  graphWindowPreference: String;
 
   constructor(
     @Inject(LOCALE_ID) private locale: string,
@@ -43,20 +45,27 @@ export class StatisticsComponent implements OnInit {
     private apiService: ApiService,
     private stateService: StateService,
     private seoService: SeoService,
-  ) {
-    this.radioGroupForm = this.formBuilder.group({
-      dateSpan: '2h'
-    });
-   }
+    private storageService: StorageService,
+  ) { }
 
   ngOnInit() {
-    this.seoService.setTitle('Graphs');
+    this.seoService.setTitle($localize`:@@5d4f792f048fcaa6df5948575d7cb325c9393383:Graphs`);
     this.stateService.networkChanged$.subscribe((network) => this.network = network);
+    this.inverted = this.storageService.getValue('inverted-graph') === 'true';
+    this.graphWindowPreference = this.storageService.getValue('graphWindowPreference') ? this.storageService.getValue('graphWindowPreference').trim() : '2h';
+    const isMobile = window.innerWidth <= 767.98;
+    let labelHops = isMobile ? 48 : 24;
+
+    if (isMobile) {
+      labelHops = 96;
+    }
+
+    this.radioGroupForm = this.formBuilder.group({
+      dateSpan: this.graphWindowPreference
+    });
 
     const labelInterpolationFnc = (value: any, index: any) => {
-      const nr = 6;
-
-      switch (this.radioGroupForm.controls.dateSpan.value) {
+      switch (this.graphWindowPreference) {
         case '2h':
         case '24h':
           value = formatDate(value, 'HH:mm', this.locale);
@@ -71,7 +80,7 @@ export class StatisticsComponent implements OnInit {
           value = formatDate(value, 'dd/MM', this.locale);
       }
 
-      return index % nr  === 0 ? value : null;
+      return index % labelHops === 0 ? value : null;
     };
 
     this.transactionsWeightPerSecondOptions = {
@@ -108,10 +117,10 @@ export class StatisticsComponent implements OnInit {
       switchMap(() => {
         this.spinnerLoading = true;
         if (this.radioGroupForm.controls.dateSpan.value === '2h') {
-          this.websocketService.want(['blocks', 'stats', 'live-2h-chart']);
+          this.websocketService.want(['blocks', 'live-2h-chart']);
           return this.apiService.list2HStatistics$();
         }
-        this.websocketService.want(['blocks',  'stats']);
+        this.websocketService.want(['blocks']);
         if (this.radioGroupForm.controls.dateSpan.value === '24h') {
           return this.apiService.list24HStatistics$();
         }
@@ -153,5 +162,14 @@ export class StatisticsComponent implements OnInit {
       labels: labels,
       series: [mempoolStats.map((stats) => stats.vbytes_per_second)],
     };
+  }
+
+  invertGraph() {
+    this.storageService.setValue('inverted-graph', !this.inverted);
+    document.location.reload();
+  }
+
+  saveGraphPreference() {
+    this.storageService.setValue('graphWindowPreference', this.radioGroupForm.controls.dateSpan.value);
   }
 }

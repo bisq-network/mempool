@@ -1,16 +1,18 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, Input } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, Input, ChangeDetectionStrategy } from '@angular/core';
 import * as ClipboardJS from 'clipboard';
 import * as tlite from 'tlite';
 
 @Component({
   selector: 'app-clipboard',
   templateUrl: './clipboard.component.html',
-  styleUrls: ['./clipboard.component.scss']
+  styleUrls: ['./clipboard.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClipboardComponent implements AfterViewInit {
   @ViewChild('btn') btn: ElementRef;
   @ViewChild('buttonWrapper') buttonWrapper: ElementRef;
   @Input() text: string;
+  copiedMessage: string = $localize`:@@clipboard.copied-message:Copied!`;
 
   clipboard: any;
 
@@ -18,7 +20,7 @@ export class ClipboardComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     this.clipboard = new ClipboardJS(this.btn.nativeElement);
-    this.clipboard.on('success', (e) => {
+    this.clipboard.on('success', () => {
       tlite.show(this.buttonWrapper.nativeElement);
       setTimeout(() => {
         tlite.hide(this.buttonWrapper.nativeElement);

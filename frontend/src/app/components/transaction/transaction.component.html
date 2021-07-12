@@ -2,30 +2,39 @@
 
   <div class="title-block">
     <div *ngIf="rbfTransaction" class="alert alert-mempool" role="alert">
-      This transaction has been replaced by:
+      <span i18n="transaction.rbf.replacement|RBF replacement">This transaction has been replaced by:</span>
       <a class="alert-link" [routerLink]="['/tx/' | relativeUrl, rbfTransaction.txid]" [state]="{ data: rbfTransaction }">
         <span class="d-inline d-lg-none">{{ rbfTransaction.txid | shortenString : 24 }}</span>
         <span class="d-none d-lg-inline">{{ rbfTransaction.txid }}</span>
       </a>
     </div>
   
-    <h1 class="float-left mr-3 mb-md-3">Transaction</h1>
-
-    <ng-template [ngIf]="tx?.status?.confirmed">
-      <button *ngIf="latestBlock" type="button" class="btn btn-sm btn-success float-right mr-2 mt-1 mt-md-3">{{ latestBlock.height - tx.status.block_height + 1 }} confirmation<ng-container *ngIf="latestBlock.height - tx.status.block_height + 1 > 1">s</ng-container></button>
-    </ng-template>
-    <ng-template [ngIf]="tx && !tx?.status.confirmed">
-      <button type="button" class="btn btn-sm btn-danger float-right mr-2 mt-1 mt-md-3">Unconfirmed</button>
-    </ng-template>
-
     <div>
-      <a [routerLink]="['/tx/' | relativeUrl, txId]" style="line-height: 56px;">
-        <span class="d-inline d-lg-none">{{ txId | shortenString : 24 }}</span>
-        <span class="d-none d-lg-inline">{{ txId }}</span>
-      </a>
-      <app-clipboard [text]="txId"></app-clipboard>
+      <div class="title">
+        <h1 i18n="shared.transaction">Transaction</h1>
+      </div>
+
+      <div class="tx-link">
+        <a [routerLink]="['/tx/' | relativeUrl, txId]">
+          <span class="d-inline d-lg-none">{{ txId | shortenString : 24 }}</span>
+          <span class="d-none d-lg-inline">{{ txId }}</span>
+        </a>
+        <app-clipboard [text]="txId"></app-clipboard>
+      </div>
+
+      <div class="container-buttons">
+        <ng-template [ngIf]="tx?.status?.confirmed">
+          <button *ngIf="latestBlock" type="button" class="btn btn-sm btn-success">
+            <ng-container *ngTemplateOutlet="latestBlock.height - tx.status.block_height + 1 == 1 ? confirmationSingular : confirmationPlural; context: {$implicit: latestBlock.height - tx.status.block_height + 1}"></ng-container>
+            <ng-template #confirmationSingular let-i i18n="shared.confirmation-count.singular|Transaction singular confirmation count">{{ i }} confirmation</ng-template>
+            <ng-template #confirmationPlural let-i i18n="shared.confirmation-count.plural|Transaction plural confirmation count">{{ i }} confirmations</ng-template>
+          </button>
+        </ng-template>
+        <ng-template [ngIf]="tx && !tx?.status.confirmed">
+          <button type="button" class="btn btn-sm btn-danger" i18n="transaction.unconfirmed|Transaction unconfirmed state">Unconfirmed</button>
+        </ng-template>
+      </div>
     </div>
-    <div class="clearfix"></div>
   </div>
   <div class="clearfix"></div>
 
@@ -39,20 +48,28 @@
             <table class="table table-borderless table-striped">
               <tbody>
                 <tr>
-                  <td class="td-width">Included in block</td>
+                  <td i18n="transaction.timestamp|Transaction Timestamp">Timestamp</td>
+                  <td>
+                    {{ tx.status.block_time * 1000 | date:'yyyy-MM-dd HH:mm' }}
+                    <div class="lg-inline">
+                      <i class="symbol">(<app-time-since [time]="tx.status.block_time" [fastRender]="true"></app-time-since>)</i>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="latestBlock && tx.status.block_height <= latestBlock.height - 8">
+                  <td class="td-width" i18n="transaction.included-in-block|Transaction included in block">Included in block</td>
                   <td>
                     <a [routerLink]="['/block/' | relativeUrl, tx.status.block_hash]" [state]="{ data: { blockHeight: tx.status.block_height } }">{{ tx.status.block_height }}</a>
-                    <i> (<app-time-since [time]="tx.status.block_time" [fastRender]="true"></app-time-since> ago)</i>
                   </td>
                 </tr>
                 <ng-template [ngIf]="transactionTime > 0">
                   <tr>
-                    <td>Confirmed</td>
-                    <td>After <app-timespan [time]="tx.status.block_time - transactionTime"></app-timespan></td>
+                    <td i18n="transaction.confirmed|Transaction Confirmed state">Confirmed</td>
+                    <td><ng-container i18n="transaction.confirmed.after|Transaction confirmed after">After <app-timespan [time]="tx.status.block_time - transactionTime"></app-timespan></ng-container></td>
                   </tr>
                 </ng-template>
                 <tr *ngIf="network !== 'liquid'">
-                  <td class="td-width">Features</td>
+                  <td class="td-width" i18n="transaction.features|Transaction features">Features</td>
                   <td>
                     <app-tx-features [tx]="tx"></app-tx-features>
                   </td>
@@ -61,24 +78,7 @@
             </table>
           </div>
           <div class="col-sm">
-            <table class="table table-borderless table-striped">
-              <tbody>
-                <ng-template [ngIf]="tx.fee">
-                  <tr>
-                    <td class="td-width">Fee</td>
-                    <td>{{ tx.fee | number }} sat (<app-fiat [value]="tx.fee"></app-fiat>)</td>
-                  </tr>
-                  <tr>
-                    <td>Fee per vByte</td>
-                    <td>
-                      {{ tx.fee / (tx.weight / 4) | number : '1.1-1' }} sat/vB
-                      &nbsp;
-                      <app-tx-fee-rating [tx]="tx"></app-tx-fee-rating>
-                    </td>
-                  </tr>
-                </ng-template>
-              </tbody>
-            </table>
+            <ng-container *ngTemplateOutlet="feeTable"></ng-container>
           </div>
 
         </div>
@@ -100,35 +100,34 @@
                   </tr>
                   <ng-template #firstSeenTmpl>
                     <tr>
-                      <td>First seen</td>
-                      <td><i><app-time-since [time]="transactionTime" [fastRender]="true"></app-time-since> ago</i></td>
+                      <td i18n="transaction.first-seen|Transaction first seen">First seen</td>
+                      <td><i><app-time-since [time]="transactionTime" [fastRender]="true"></app-time-since></i></td>
                     </tr>
                   </ng-template>
                 </ng-template>
                 <tr>
-                  <td class="td-width">ETA</td>
+                  <td class="td-width" i18n="transaction.eta|Transaction ETA">ETA</td>
                   <td>
                     <ng-template [ngIf]="txInBlockIndex === undefined" [ngIfElse]="estimationTmpl">
                       <span class="skeleton-loader"></span>
                     </ng-template>
                     <ng-template #estimationTmpl>
                       <ng-template [ngIf]="txInBlockIndex >= 7" [ngIfElse]="belowBlockLimit">
-                        In several hours (or more)
+                        <span i18n="transaction.eta.in-several-hours|Transaction ETA in several hours or more">In several hours (or more)</span>
                       </ng-template>
                       <ng-template #belowBlockLimit>
                         <ng-template [ngIf]="network === 'liquid'" [ngIfElse]="timeEstimateDefault">
-                          &lt; {{ 1 * txInBlockIndex + 1 }} minutes <i>({{ txInBlockIndex + 1 }} block{{ txInBlockIndex > 0 ? 's' : '' }})</i>
+                          <ng-container *ngTemplateOutlet="1 * txInBlockIndex + 1 === 1 ? nextBlockEta : nextBlockEtaPlural; context:{ $implicit: 1 * txInBlockIndex + 1 }"></ng-container>&nbsp;<i><span class="symbol">(<ng-container *ngTemplateOutlet="txInBlockIndex === 0 ? blocksSingular : blocksPlural; context: {$implicit: txInBlockIndex + 1 }"></ng-container>)</span></i>
                         </ng-template>
                         <ng-template #timeEstimateDefault>
-
-                          ~{{ 10 * txInBlockIndex + 10 }} minutes <i>({{ txInBlockIndex + 1 }} block{{ txInBlockIndex > 0 ? 's' : '' }})</i>
+                          <ng-container *ngTemplateOutlet="nextBlockEtaPlural; context:{ $implicit: 10 * txInBlockIndex + 10 }"></ng-container>&nbsp;<i><span class="symbol">(<ng-container *ngTemplateOutlet="txInBlockIndex === 0 ? blocksSingular : blocksPlural; context: {$implicit: txInBlockIndex + 1 }"></ng-container>)</span></i>
                         </ng-template>
                       </ng-template>
                     </ng-template>
                   </td>
                 </tr>
                 <tr *ngIf="network !== 'liquid'">
-                  <td class="td-width">Features</td>
+                  <td class="td-width" i18n="transaction.features|Transaction Features">Features</td>
                   <td>
                     <app-tx-features [tx]="tx"></app-tx-features>
                   </td>
@@ -137,40 +136,85 @@
             </table>
           </div>
           <div class="col-sm">
-            <table class="table table-borderless table-striped">
-              <tbody>
-                <tr>
-                  <td class="td-width">Fee</td>
-                  <td>{{ tx.fee | number }} sat (<app-fiat [value]="tx.fee"></app-fiat>)</td>
-                </tr>
-                <tr>
-                  <td>Fee per vByte</td>
-                  <td>{{ tx.fee / (tx.weight / 4) | number : '1.1-1' }} sat/vB</td>
-                </tr>
-              </tbody>
-            </table>
+            <ng-container *ngTemplateOutlet="feeTable"></ng-container>
           </div>
         </div>
       </div>
     </ng-template>
 
+    <ng-template [ngIf]="showCpfpDetails">
+      <br>
+
+      <h2 class="text-left">CPFP <fa-icon [icon]="['fas', 'info-circle']" [fixedWidth]="true" size="xs"></fa-icon></h2>
+      <div class="box">
+        <table class="table table-borderless table-striped">
+          <thead>
+            <tr>
+              <th i18n="transactions-list.vout.scriptpubkey-type">Type</th>
+              <th i18n="dashboard.latest-transactions.txid">TXID</th>
+              <th class="d-none d-lg-table-cell" i18n="transaction.vsize|Transaction Virtual Size">Virtual size</th>
+              <th i18n="transaction.fee-rate|Transaction fee rate">Fee rate</th>
+              <th class="d-none d-lg-table-cell"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-template [ngIf]="cpfpInfo.bestDescendant">
+              <tr>
+                <td><span class="badge badge-success" i18n="transaction.descendant|Descendant">Descendant</span></td>
+                <td>
+                  <a [routerLink]="['/tx' | relativeUrl, cpfpInfo.bestDescendant.txid]">
+                    <span class="d-inline d-lg-none">{{ cpfpInfo.bestDescendant.txid | shortenString : 8 }}</span>
+                    <span class="d-none d-lg-inline">{{ cpfpInfo.bestDescendant.txid }}</span>
+                  </a>
+                </td>
+                <td class="d-none d-lg-table-cell" [innerHTML]="cpfpInfo.bestDescendant.weight / 4 | vbytes: 2"></td>
+                <td>{{ cpfpInfo.bestDescendant.fee / (cpfpInfo.bestDescendant.weight / 4) | number : '1.1-1' }} <span class="symbol" i18n="shared.sat-vbyte|sat/vB">sat/vB</span></td>
+                <td class="d-none d-lg-table-cell"><fa-icon class="arrow-green" [icon]="['fas', 'angle-double-up']" [fixedWidth]="true"></fa-icon></td>
+              </tr>
+            </ng-template>
+            <ng-template [ngIf]="cpfpInfo.ancestors.length">
+              <tr *ngFor="let cpfpTx of cpfpInfo.ancestors">
+                <td><span class="badge badge-primary" i18n="transaction.ancestor|Transaction Ancestor">Ancestor</span></td>
+                  <td><a [routerLink]="['/tx' | relativeUrl, cpfpTx.txid]">
+                    <span class="d-inline d-lg-none">{{ cpfpTx.txid | shortenString : 8 }}</span>
+                    <span class="d-none d-lg-inline">{{ cpfpTx.txid }}</span>
+                  </a>
+                </td>
+                <td class="d-none d-lg-table-cell" [innerHTML]="cpfpTx.weight / 4 | vbytes: 2"></td>
+                <td>{{ cpfpTx.fee / (cpfpTx.weight / 4) | number : '1.1-1' }} <span class="symbol" i18n="shared.sat-vbyte|sat/vB">sat/vB</span></td>
+                <td class="d-none d-lg-table-cell"><fa-icon *ngIf="roundToOneDecimal(cpfpTx) < roundToOneDecimal(tx)" class="arrow-red" [icon]="['fas', 'angle-double-down']" [fixedWidth]="true"></fa-icon></td>
+              </tr>
+            </ng-template>
+          </tbody>
+        </table>
+      </div>
+    </ng-template>
+
     <br>
 
-    <h2>Inputs & Outputs</h2>
+    <h2 class="float-left" i18n="transaction.inputs-and-outputs|Transaction inputs and outputs">Inputs & Outputs</h2>
 
-    <app-transactions-list [transactions]="[tx]" [transactionPage]="true"></app-transactions-list>
+    <button type="button" class="btn btn-outline-info btn-sm float-right mr-1 mt-0 mt-md-2" (click)="txList.toggleDetails()" i18n="transaction.details|Transaction Details">Details</button>
 
-    <h2>Details</h2>
+    <div class="clearfix"></div>
+
+    <app-transactions-list #txList [transactions]="[tx]" [errorUnblinded]="errorUnblinded" [transactionPage]="true"></app-transactions-list>
+
+    <h2 class="text-left" i18n="transaction.details">Details</h2>
     <div class="box">
       <table class="table table-borderless table-striped">
         <tbody>
           <tr>
-            <td>Size</td>
-            <td>{{ tx.size | bytes: 2 }}</td>
+            <td i18n="transaction.size|Transaction Size">Size</td>
+            <td [innerHTML]="tx.size | bytes: 2"></td>
           </tr>
           <tr>
-            <td>Weight</td>
-            <td>{{ tx.weight | wuBytes: 2 }}</td>
+            <td i18n="transaction.vsize|Transaction Virtual Size">Virtual size</td>
+            <td [innerHTML]="tx.weight / 4 | vbytes: 2"></td>
+          </tr>
+          <tr>
+            <td i18n="transaction.weight|Transaction Weight">Weight</td>
+            <td [innerHTML]="tx.weight | wuBytes: 2"></td>
           </tr>
         </tbody>
       </table>
@@ -232,10 +276,14 @@
 
     <br>
 
-    <h2>Details</h2>
+    <h2 i18n="transaction.details">Details</h2>
     <div class="box">
       <table class="table table-borderless table-striped">
         <tbody>
+          <tr>
+            <td><span class="skeleton-loader"></span></td>
+            <td><span class="skeleton-loader"></span></td>
+          </tr>
           <tr>
             <td><span class="skeleton-loader"></span></td>
             <td><span class="skeleton-loader"></span></td>
@@ -253,8 +301,8 @@
   <ng-template [ngIf]="error">
 
     <div class="text-center" *ngIf="waitingForTransaction; else errorTemplate">
-      <h3>Transaction not found.</h3>
-      <h5>Waiting for it to appear in the mempool...</h5>
+      <h3 i18n="transaction.error.transaction-not-found">Transaction not found.</h3>
+      <h5 i18n="transaction.error.waiting-for-it-to-appear">Waiting for it to appear in the mempool...</h5>
       <div class="spinner-border text-light mt-2"></div>
     </div>
     
@@ -268,3 +316,43 @@
 </div>
 
 <br>
+
+<ng-template let-i #nextBlockEtaPlural i18n="mempool-blocks.eta-of-next-block-plural|Block Frequency (plural)">In ~{{ i }} minutes</ng-template>
+
+<ng-template let-i #nextBlockEta i18n="mempool-blocks.eta-of-next-block|Block Frequency">In ~{{ i }} minute</ng-template>
+
+<ng-template #blocksSingular let-i i18n="shared.block">{{ i }} block</ng-template>
+<ng-template #blocksPlural let-i i18n="shared.blocks">{{ i }} blocks</ng-template>
+
+<ng-template #feeTable>
+  <table class="table table-borderless table-striped">
+    <tbody>
+      <tr>
+        <td class="td-width" i18n="transaction.fee|Transaction fee">Fee</td>
+        <td>{{ tx.fee | number }} <span class="symbol" i18n="transaction.fee.sat|Transaction Fee sat">sat</span> <span class="fiat"><app-fiat [value]="tx.fee"></app-fiat></span></td>
+      </tr>
+      <tr>
+        <td i18n="transaction.fee-rate|Transaction fee rate">Fee rate</td>
+        <td>
+          {{ tx.feePerVsize | number : '1.1-1' }} <span class="symbol" i18n="shared.sat-vbyte|sat/vB">sat/vB</span>
+          <ng-template [ngIf]="tx.status.confirmed">
+            &nbsp;
+            <app-tx-fee-rating *ngIf="tx.fee && ((cpfpInfo && !cpfpInfo.bestDescendant && !cpfpInfo.ancestors.length) || !cpfpInfo)" [tx]="tx"></app-tx-fee-rating>
+          </ng-template>
+        </td>
+      </tr>
+      <tr *ngIf="cpfpInfo && (cpfpInfo.bestDescendant || cpfpInfo.ancestors.length)">
+        <td i18n="transaction.effective-fee-rate|Effective transaction fee rate">Effective fee rate</td>
+        <td>
+          <div class="effective-fee-container">
+            {{ tx.effectiveFeePerVsize | number : '1.1-1' }} <span class="symbol" i18n="shared.sat-vbyte|sat/vB">sat/vB</span>
+            <ng-template [ngIf]="tx.status.confirmed">
+              <app-tx-fee-rating class="d-none d-lg-inline ml-2" *ngIf="tx.fee" [tx]="tx"></app-tx-fee-rating>
+            </ng-template>
+          </div>
+          <button type="button" class="btn btn-outline-info btn-sm btn-small-height float-right" (click)="showCpfpDetails = !showCpfpDetails">CPFP <fa-icon [icon]="['fas', 'info-circle']" [fixedWidth]="true"></fa-icon></button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</ng-template>

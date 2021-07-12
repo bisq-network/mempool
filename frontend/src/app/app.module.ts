@@ -1,9 +1,7 @@
-import { BrowserModule } from '@angular/platform-browser';
+import { BrowserModule, BrowserTransferStateModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
-import { HttpClientModule } from '@angular/common/http';
-import { ReactiveFormsModule } from '@angular/forms';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgbButtonsModule, NgbPaginationModule, NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { InfiniteScrollModule } from 'ngx-infinite-scroll';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -23,6 +21,7 @@ import { WebsocketService } from './services/websocket.service';
 import { AddressLabelsComponent } from './components/address-labels/address-labels.component';
 import { MempoolBlocksComponent } from './components/mempool-blocks/mempool-blocks.component';
 import { MasterPageComponent } from './components/master-page/master-page.component';
+import { BisqMasterPageComponent } from './components/bisq-master-page/bisq-master-page.component';
 import { AboutComponent } from './components/about/about.component';
 import { TelevisionComponent } from './components/television/television.component';
 import { StatisticsComponent } from './components/statistics/statistics.component';
@@ -41,12 +40,25 @@ import { AssetsComponent } from './assets/assets.component';
 import { StatusViewComponent } from './components/status-view/status-view.component';
 import { MinerComponent } from './components/miner/miner.component';
 import { SharedModule } from './shared/shared.module';
+import { NgbTypeaheadModule } from '@ng-bootstrap/ng-bootstrap';
+import { FeesBoxComponent } from './components/fees-box/fees-box.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
+import { FontAwesomeModule, FaIconLibrary } from '@fortawesome/angular-fontawesome';
+import { faAngleDown, faAngleUp, faBolt, faChartArea, faCogs, faCubes, faDatabase, faExchangeAlt, faInfoCircle,
+  faLink, faList, faSearch, faTachometerAlt, faThList, faTint, faTv, faAngleDoubleDown, faAngleDoubleUp, faChevronDown, faFileAlt, faRedoAlt } from '@fortawesome/free-solid-svg-icons';
+import { ApiDocsComponent } from './components/api-docs/api-docs.component';
+import { CodeTemplateComponent } from './components/api-docs/code-template.component';
+import { TermsOfServiceComponent } from './components/terms-of-service/terms-of-service.component';
+import { StorageService } from './services/storage.service';
+import { HttpCacheInterceptor } from './services/http-cache.interceptor';
+import { SponsorComponent } from './components/sponsor/sponsor.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     AboutComponent,
     MasterPageComponent,
+    BisqMasterPageComponent,
     TelevisionComponent,
     BlockchainComponent,
     StartComponent,
@@ -57,8 +69,8 @@ import { SharedModule } from './shared/shared.module';
     TransactionsListComponent,
     AddressComponent,
     AmountComponent,
-    SearchFormComponent,
     LatestBlocksComponent,
+    SearchFormComponent,
     TimespanComponent,
     AddressLabelsComponent,
     MempoolBlocksComponent,
@@ -71,17 +83,22 @@ import { SharedModule } from './shared/shared.module';
     AssetsComponent,
     MinerComponent,
     StatusViewComponent,
+    FeesBoxComponent,
+    DashboardComponent,
+    ApiDocsComponent,
+    CodeTemplateComponent,
+    TermsOfServiceComponent,
+    SponsorComponent,
   ],
   imports: [
-    BrowserModule,
+    BrowserModule.withServerTransition({ appId: 'serverApp' }),
+    BrowserTransferStateModule,
     AppRoutingModule,
     HttpClientModule,
-    ReactiveFormsModule,
     BrowserAnimationsModule,
-    NgbButtonsModule,
-    NgbPaginationModule,
-    NgbDropdownModule,
     InfiniteScrollModule,
+    NgbTypeaheadModule,
+    FontAwesomeModule,
     SharedModule,
   ],
   providers: [
@@ -90,7 +107,34 @@ import { SharedModule } from './shared/shared.module';
     WebsocketService,
     AudioService,
     SeoService,
+    StorageService,
+    { provide: HTTP_INTERCEPTORS, useClass: HttpCacheInterceptor, multi: true }
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {
+  constructor(library: FaIconLibrary) {
+    library.addIcons(faInfoCircle);
+    library.addIcons(faChartArea);
+    library.addIcons(faTv);
+    library.addIcons(faTachometerAlt);
+    library.addIcons(faCubes);
+    library.addIcons(faCogs);
+    library.addIcons(faThList);
+    library.addIcons(faList);
+    library.addIcons(faTachometerAlt);
+    library.addIcons(faDatabase);
+    library.addIcons(faSearch);
+    library.addIcons(faLink);
+    library.addIcons(faBolt);
+    library.addIcons(faTint);
+    library.addIcons(faAngleDown);
+    library.addIcons(faAngleUp);
+    library.addIcons(faExchangeAlt);
+    library.addIcons(faAngleDoubleUp);
+    library.addIcons(faAngleDoubleDown);
+    library.addIcons(faChevronDown);
+    library.addIcons(faFileAlt);
+    library.addIcons(faRedoAlt);
+  }
+}

@@ -16,10 +16,12 @@ import { map } from 'rxjs/operators';
 export class TransactionsListComponent implements OnInit, OnChanges {
   network = '';
   nativeAssetId = environment.nativeAssetId;
+  displayDetails = false;
 
   @Input() transactions: Transaction[];
   @Input() showConfirmations = false;
   @Input() transactionPage = false;
+  @Input() errorUnblinded = false;
 
   @Output() loadMore = new EventEmitter();
 
@@ -51,8 +53,8 @@ export class TransactionsListComponent implements OnInit, OnChanges {
     }
     const observableObject = {};
     this.transactions.forEach((tx, i) => {
-      tx['@voutLength'] = 10;
-      tx['@vinLength'] = 10;
+      tx['@voutLimit'] = true;
+      tx['@vinLimit'] = true;
       if (this.outspends[i]) {
         return;
       }
@@ -73,7 +75,14 @@ export class TransactionsListComponent implements OnInit, OnChanges {
   }
 
   onScroll() {
-    this.loadMore.emit();
+    const scrollHeight = document.body.scrollHeight;
+    const scrollTop = document.documentElement.scrollTop;
+    if (scrollHeight > 0){
+      const percentageScrolled = scrollTop * 100 / scrollHeight;
+      if (percentageScrolled > 70){
+        this.loadMore.emit();
+      }
+    }
   }
 
   getTotalTxOutput(tx: Transaction) {
@@ -88,29 +97,21 @@ export class TransactionsListComponent implements OnInit, OnChanges {
     this.stateService.viewFiat$.next(oldvalue);
   }
 
-  trackByFn(index: number, tx: Transaction) {
+  trackByFn(index: number, tx: Transaction): string {
     return tx.txid + tx.status.confirmed;
-  }
-
-  loadMoreVin(tx: Transaction) {
-    tx['@vinLength'] += 10;
-    this.ref.markForCheck();
-  }
-
-  loadMoreVout(tx: Transaction) {
-    tx['@voutLength'] += 10;
-    this.ref.markForCheck();
-  }
-
-  getFilteredTxVin(tx: Transaction) {
-    return tx.vin.slice(0, tx['@vinLength']);
-  }
-
-  getFilteredTxVout(tx: Transaction) {
-    return tx.vout.slice(0, tx['@voutLength']);
   }
 
   trackByIndexFn(index: number) {
     return index;
+  }
+
+  formatHex(num: number): string {
+    const str = num.toString(16);
+    return '0x' + (str.length % 2 ? '0' : '') + str;
+  }
+
+  toggleDetails() {
+    this.displayDetails = !this.displayDetails;
+    this.ref.markForCheck();
   }
 }

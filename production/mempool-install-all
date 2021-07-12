@@ -1,14 +1,22 @@
 #!/usr/local/bin/zsh
-for site in mainnet liquid testnet
+export NVM_DIR="$HOME/.nvm"
+source "$NVM_DIR/nvm.sh"
+for site in mainnet liquid testnet bisq signet
 do
     git clone https://github.com/mempool/mempool "${HOME}/${site}"
     mkdir -p "${HOME}/public_html/${site}/"
+
     cd "${HOME}/${site}/backend/"
     cp "../production/mempool-config.${site}.json" "mempool-config.json"
-    touch cache.json
+
     npm install
     npm run build
-    cd "${HOME}/${site}/frontend/"
-    npm install
-    npm run build
+
+    if [ "${site}" = "mainnet" ]
+    then
+        cd "${HOME}/${site}/frontend/"
+        npm install
+        npm run build
+        rsync -av ./dist/mempool/browser/* "${HOME}/public_html/${site}/"
+    fi
 done

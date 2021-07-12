@@ -1,27 +1,42 @@
 #!/usr/local/bin/zsh -x
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:$HOME/bin
 
-[ -f $HOME/lock ] && exit 1
+if [ -f $HOME/lock ];then
+    echo "check lockfile"
+    exit 1
+fi
+
 touch $HOME/lock
 
-echo 'rebuilding mempool sites'|wall
+export NVM_DIR="$HOME/.nvm"
+source "$NVM_DIR/nvm.sh"
+
+REPO=origin
+BRANCH=master
+
+TAG="${BRANCH}"
+[ ! -z "$1" ] && TAG=$1
+
+echo "upgrading mempool to ${TAG}" | wall
 
 cd "$HOME/mempool"
-git pull origin master
+git fetch "${REPO}"
+git reset --hard "${REPO}/${TAG}"
 cd "$HOME/"
 
-for site in mainnet liquid testnet
+for site in mainnet liquid testnet bisq signet
 do
     cd "$HOME/${site}"
-    git pull origin master
+    git fetch "${REPO}"
+    git reset --hard "${REPO}/${TAG}"
     hash=$(git rev-parse HEAD)
 
     if [ "${site}" = "mainnet" ]
     then
-	    cd "$HOME/${site}/frontend"
-	    npm install
-	    npm run build
-	    rsync -av ./dist/mempool/* "${HOME}/public_html/${site}/"
+        cd "$HOME/${site}/frontend"
+        npm install
+        npm run build
+        rsync -av ./dist/mempool/browser/* "${HOME}/public_html/${site}/"
     fi
 
     cd "$HOME/${site}/backend"
@@ -29,9 +44,7 @@ do
     npm run build
 done
 
-ps uaxw|grep 'node dist/index'|grep -v grep|awk '{print $2}'|xargs -n 1 kill
-
 hostname=$(hostname)
-keybase chat send --channel dev mempool "${hostname} updated to ${hash}"
+echo "${hostname} updated to \`${TAG}\` @ \`${hash}\`" | /usr/local/bin/keybase chat send --nonblock --channel ops mempool.space
 
 rm "$HOME/lock"
