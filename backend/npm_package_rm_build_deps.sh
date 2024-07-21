@@ -5,5 +5,4 @@ set -e
 cd package/node_modules
 rm -r \
   typescript \
-  @typescript-eslint \
-  @napi-rs
+  @typescript-eslint

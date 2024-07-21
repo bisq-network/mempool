@@ -3,8 +3,6 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, merge, Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
-import { SeoService } from '../../services/seo.service';
-import { WebsocketService } from '../../services/websocket.service';
 import { BisqApiService } from '../bisq-api.service';
 import { OffersMarket, Trade } from '../bisq.interfaces';
 
@@ -16,20 +14,18 @@ import { OffersMarket, Trade } from '../bisq.interfaces';
 })
 export class BisqMarketComponent implements OnInit, OnDestroy {
   hlocData$: Observable<any>;
+  marketPrice$: Observable<number>;
   currency$: Observable<any>;
   offers$: Observable<OffersMarket>;
   trades$: Observable<Trade[]>;
   radioGroupForm: UntypedFormGroup;
   defaultInterval = 'day';
-
   isLoadingGraph = false;
 
   constructor(
-    private websocketService: WebsocketService,
     private route: ActivatedRoute,
     private bisqApiService: BisqApiService,
     private formBuilder: UntypedFormBuilder,
-    private seoService: SeoService,
     private router: Router,
   ) { }
 
@@ -42,20 +38,26 @@ export class BisqMarketComponent implements OnInit, OnDestroy {
       this.radioGroupForm.controls.interval.setValue(this.route.snapshot.fragment, { emitEvent: false });
     }
 
+//    this.marketPrice$ = this.bisqApiService.getMarketPrice$(this.route.paramMap.get('pair'));
+    
     this.currency$ = this.bisqApiService.getMarkets$()
       .pipe(
         switchMap((markets) => combineLatest([of(markets), this.route.paramMap])),
         map(([markets, routeParams]) => {
           const pair = routeParams.get('pair');
           const pairUpperCase = pair.replace('_', '/').toUpperCase();
-          this.seoService.setTitle($localize`:@@meta.title.bisq.market:Bisq market: ${pairUpperCase}`);
-          this.seoService.setDescription($localize`:@@meta.description.bisq.market:See price history, current buy/sell offers, and latest trades for the ${pairUpperCase} market on Bisq.`);
 
           return {
             pair: pairUpperCase,
             market: markets[pair],
           };
         })
+      );
+
+    this.marketPrice$ = this.route.paramMap
+      .pipe(
+        map(routeParams => routeParams.get('pair')),
+        switchMap((marketPair) => this.bisqApiService.getMarketPrice$(marketPair)),
       );
 
     this.trades$ = this.route.paramMap
@@ -140,7 +142,6 @@ export class BisqMarketComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.websocketService.stopTrackingBisqMarket();
   }
 
   getUnixTimestampFromInterval(interval: string): number {

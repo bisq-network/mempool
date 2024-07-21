@@ -6,9 +6,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { Subscription, of } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { SeoService } from '../../services/seo.service';
-import { ElectrsApiService } from '../../services/electrs-api.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { WebsocketService } from '../../services/websocket.service';
 
 @Component({
   selector: 'app-bisq-block',
@@ -24,18 +22,14 @@ export class BisqBlockComponent implements OnInit, OnDestroy {
   error: HttpErrorResponse | null;
 
   constructor(
-    private websocketService: WebsocketService,
     private bisqApiService: BisqApiService,
     private route: ActivatedRoute,
     private seoService: SeoService,
-    private electrsApiService: ElectrsApiService,
     private router: Router,
     private location: Location,
   ) { }
 
   ngOnInit(): void {
-    this.websocketService.want(['blocks']);
-
     this.subscription = this.route.paramMap
       .pipe(
         switchMap((params: ParamMap) => {
@@ -59,22 +53,22 @@ export class BisqBlockComponent implements OnInit, OnDestroy {
           }
 
           if (isBlockHeight) {
-            return this.electrsApiService.getBlockHashFromHeight$(parseInt(blockHash, 10))
-              .pipe(
-                switchMap((hash) => {
-                  if (!hash) {
-                    return;
-                  }
-                  this.blockHash = hash;
-                  this.location.replaceState(
-                    this.router.createUrlTree(['/bisq/block/', hash]).toString()
-                  );
-                  this.seoService.updateCanonical(this.location.path());
-                  return this.bisqApiService.getBlock$(this.blockHash)
-                    .pipe(catchError(this.caughtHttpError.bind(this)));
-                }),
-                catchError(this.caughtHttpError.bind(this))
-              );
+//            return this.electrsApiService.getBlockHashFromHeight$(parseInt(blockHash, 10))
+//              .pipe(
+//                switchMap((hash) => {
+//                  if (!hash) {
+//                    return;
+//                  }
+//                  this.blockHash = hash;
+//                  this.location.replaceState(
+//                    this.router.createUrlTree(['/bisq/block/', hash]).toString()
+//                  );
+//                  this.seoService.updateCanonical(this.location.path());
+//                  return this.bisqApiService.getBlock$(this.blockHash)
+//                    .pipe(catchError(this.caughtHttpError.bind(this)));
+//                }),
+//                catchError(this.caughtHttpError.bind(this))
+//              );
           }
 
           return this.bisqApiService.getBlock$(this.blockHash)

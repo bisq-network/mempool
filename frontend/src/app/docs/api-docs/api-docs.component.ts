@@ -3,8 +3,7 @@ import { Env, StateService } from '../../services/state.service';
 import { Observable, merge, of, Subject, Subscription } from 'rxjs';
 import { tap, takeUntil } from 'rxjs/operators';
 import { ActivatedRoute } from "@angular/router";
-import { faqData, restApiDocsData, wsApiDocsData } from './api-docs-data';
-import { FaqTemplateDirective } from '../faq-template/faq-template.component';
+import { restApiDocsData } from './api-docs-data';
 
 @Component({
   selector: 'app-api-docs',
@@ -14,27 +13,19 @@ import { FaqTemplateDirective } from '../faq-template/faq-template.component';
 export class ApiDocsComponent implements OnInit, AfterViewInit {
   private destroy$: Subject<any> = new Subject<any>();
   plainHostname = document.location.hostname;
-  electrsPort = 0;
   hostname = document.location.hostname;
   network$: Observable<string>;
-  active = 0;
   env: Env;
   code: any;
   baseNetworkUrl = '';
   @Input() whichTab: string;
   desktopDocsNavPosition = "relative";
-  faq: any[];
   restDocs: any[];
-  wsDocs: any;
   screenWidth: number;
-  officialMempoolInstance: boolean;
-  auditEnabled: boolean;
   mobileViewport: boolean = false;
-  showMobileEnterpriseUpsell: boolean = true;
   timeLtrSubscription: Subscription;
   timeLtr: boolean = this.stateService.timeLtr.value;
 
-  @ViewChildren(FaqTemplateDirective) faqTemplates: QueryList<FaqTemplateDirective>;
   dict = {};
 
   constructor(
@@ -43,9 +34,6 @@ export class ApiDocsComponent implements OnInit, AfterViewInit {
   ) { }
 
   ngAfterContentChecked() {
-    if (this.faqTemplates) {
-      this.faqTemplates.forEach((x) => this.dict[x.type] = x.template);
-    }
     this.desktopDocsNavPosition = ( window.pageYOffset > 115 ) ? "fixed" : "relative";
     this.mobileViewport = window.innerWidth <= 992;
   }
@@ -65,16 +53,10 @@ export class ApiDocsComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.env = this.stateService.env;
-    this.officialMempoolInstance = this.env.OFFICIAL_MEMPOOL_SPACE;
-    this.auditEnabled = this.env.AUDIT;
     this.network$ = merge(of(''), this.stateService.networkChanged$).pipe(
       tap((network: string) => {
-        if (this.env.BASE_MODULE === 'mempool' && network !== '') {
+        if (this.env.BASE_MODULE === 'bisq' && network !== '') {
           this.baseNetworkUrl = `/${network}`;
-        } else if (this.env.BASE_MODULE === 'liquid') {
-          if (!['', 'liquid'].includes(network)) {
-            this.baseNetworkUrl = `/${network}`;
-          }
         }
         return network;
       })
@@ -86,27 +68,7 @@ export class ApiDocsComponent implements OnInit, AfterViewInit {
 
     this.hostname = `${document.location.protocol}//${this.hostname}`;
 
-    this.faq = faqData;
     this.restDocs = restApiDocsData;
-    this.wsDocs = wsApiDocsData;
-
-    this.network$.pipe(takeUntil(this.destroy$)).subscribe((network) => {
-      this.active = (network === 'liquid' || network === 'liquidtestnet') ? 2 : 0;
-      switch( network ) {
-        case "":
-          this.electrsPort = 50002; break;
-        case "mainnet":
-          this.electrsPort = 50002; break;
-        case "testnet":
-          this.electrsPort = 60002; break;
-        case "signet":
-          this.electrsPort = 60602; break;
-        case "liquid":
-          this.electrsPort = 51002; break;
-        case "liquidtestnet":
-          this.electrsPort = 51302; break;
-      }
-    });
 
     this.timeLtrSubscription = this.stateService.timeLtr.subscribe((ltr) => {
       this.timeLtr = !!ltr;
@@ -146,7 +108,7 @@ export class ApiDocsComponent implements OnInit, AfterViewInit {
     if (document.getElementById( targetId + "-tab-header" )) {
       tabHeaderHeight = document.getElementById( targetId + "-tab-header" ).scrollHeight;
     }
-    if( ( window.innerWidth <= 992 ) && ( ( this.whichTab === 'rest' ) || ( this.whichTab === 'faq' ) ) && targetId ) {
+    if( ( window.innerWidth <= 992 ) && ( ( this.whichTab === 'rest' ) ) && targetId ) {
       const endpointContainerEl = document.querySelector<HTMLElement>( "#" + targetId );
       const endpointContentEl = document.querySelector<HTMLElement>( "#" + targetId + " .endpoint-content" );
       const endPointContentElHeight = endpointContentEl.clientHeight;
@@ -167,37 +129,7 @@ export class ApiDocsComponent implements OnInit, AfterViewInit {
 
   wrapUrl(network: string, code: any, websocket: boolean = false) {
 
-    let curlResponse = [];
-    if (['', 'mainnet'].includes(network)){
-      curlResponse = code.codeSampleMainnet.curl;
-    }
-    if (network === 'testnet') {
-      curlResponse = code.codeSampleTestnet.curl;
-    }
-    if (network === 'signet') {
-      curlResponse = code.codeSampleSignet.curl;
-    }
-    if (network === 'liquid') {
-      curlResponse = code.codeSampleLiquid.curl;
-    }
-    if (network === 'liquidtestnet') {
-      curlResponse = code.codeSampleLiquidTestnet.curl;
-    }
-    if (network === 'bisq') {
-      curlResponse = code.codeSampleBisq.curl;
-    }
-
-    let curlNetwork = '';
-    if (this.env.BASE_MODULE === 'mempool') {
-      if (!['', 'mainnet'].includes(network)) {
-        curlNetwork = `/${network}`;
-      }
-    } else if (this.env.BASE_MODULE === 'liquid') {
-      if (!['', 'liquid'].includes(network)) {
-        curlNetwork = `/${network}`;
-      }
-    }
-
+    let curlResponse = code.codeSampleBisq.curl;
     let text = code.codeTemplate.curl;
     for (let index = 0; index < curlResponse.length; index++) {
       const curlText = curlResponse[index];
@@ -205,12 +137,7 @@ export class ApiDocsComponent implements OnInit, AfterViewInit {
       text = text.replace('%{' + indexNumber + '}', curlText);
     }
 
-    if (websocket) {
-      const wsHostname = this.hostname.replace('https://', 'wss://');
-      wsHostname.replace('http://', 'ws://');
-      return `${wsHostname}${curlNetwork}${text}`;
-    }
-    return `${this.hostname}${curlNetwork}${text}`;
+    return `${this.hostname}/${network}/api${text}`;
   }
 
 }

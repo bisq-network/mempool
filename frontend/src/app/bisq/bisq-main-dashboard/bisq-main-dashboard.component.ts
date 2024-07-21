@@ -2,8 +2,6 @@ import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { Observable, combineLatest, BehaviorSubject, of } from 'rxjs';
 import { map, share, switchMap } from 'rxjs/operators';
 import { SeoService } from '../../services/seo.service';
-import { StateService } from '../../services/state.service';
-import { WebsocketService } from '../../services/websocket.service';
 import { BisqApiService } from '../bisq-api.service';
 import { Trade } from '../bisq.interfaces';
 
@@ -23,23 +21,15 @@ export class BisqMainDashboardComponent implements OnInit {
   isLoadingGraph = true;
   bisqMarketPrice = 0;
 
-  allowCryptoCoins = ['usdc', 'l-btc', 'bsq'];
-
   constructor(
-    private websocketService: WebsocketService,
     private bisqApiService: BisqApiService,
-    public stateService: StateService,
     private seoService: SeoService,
   ) { }
 
   ngOnInit(): void {
     this.seoService.resetTitle();
     this.seoService.resetDescription();
-    this.websocketService.want(['blocks']);
-
-    this.usdPrice$ = this.stateService.conversions$.asObservable().pipe(
-      map((conversions) => conversions.USD)
-    );
+    this.usdPrice$ = this.bisqApiService.getMarketPrice$('USD');
 
     this.volumes$ = this.bisqApiService.getAllVolumesDay$()
       .pipe(
@@ -74,26 +64,21 @@ export class BisqMainDashboardComponent implements OnInit {
     ])
     .pipe(
       map(([tickers, markets, volumes]) => {
-
         const newTickers = [];
         for (const t in tickers) {
-
-          if (this.stateService.env.BASE_MODULE !== 'bisq') {
-            const pair = t.split('_');
-            if (pair[1] === 'btc' && this.allowCryptoCoins.indexOf(pair[0]) === -1) {
-              continue;
-            }
+          try {
+              const mappedTicker: any = tickers[t];
+              mappedTicker.pair_url = t;
+              mappedTicker.pair = t.replace('_', '/').toUpperCase();
+              mappedTicker.market = markets[t];
+              mappedTicker.volume = volumes[t];
+              mappedTicker.name = `${mappedTicker.market.rtype === 'crypto' ? mappedTicker.market.lname : mappedTicker.market.rname} (${mappedTicker.market.rtype === 'crypto' ? mappedTicker.market.lsymbol : mappedTicker.market.rsymbol}`;
+              newTickers.push(mappedTicker);
+          } catch (e) {
+            console.log("unable to map ticker:" + t);
           }
-
-          const mappedTicker: any = tickers[t];
-
-          mappedTicker.pair_url = t;
-          mappedTicker.pair = t.replace('_', '/').toUpperCase();
-          mappedTicker.market = markets[t];
-          mappedTicker.volume = volumes[t];
-          mappedTicker.name = `${mappedTicker.market.rtype === 'crypto' ? mappedTicker.market.lname : mappedTicker.market.rname} (${mappedTicker.market.rtype === 'crypto' ? mappedTicker.market.lsymbol : mappedTicker.market.rsymbol}`;
-          newTickers.push(mappedTicker);
         }
+        console.log("tickers processed:" + newTickers.length);
         return newTickers;
       }),
       switchMap((tickers) => combineLatest([this.sort$, of(tickers)])),
@@ -115,12 +100,6 @@ export class BisqMainDashboardComponent implements OnInit {
     ])
     .pipe(
       map(([trades, markets]) => {
-        if (this.stateService.env.BASE_MODULE !== 'bisq') {
-          trades = trades.filter((trade) => {
-            const pair = trade.market.split('_');
-            return !(pair[1] === 'btc' && this.allowCryptoCoins.indexOf(pair[0]) === -1);
-          });
-        }
         return trades.map((trade => {
           trade._market = markets[trade.market];
           return trade;

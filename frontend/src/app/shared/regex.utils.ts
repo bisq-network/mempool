@@ -173,41 +173,6 @@ function isNetworkAvailable(network: Network, env: Env): boolean {
   }
 }
 
-export function needBaseModuleChange(fromBaseModule: 'mempool' | 'liquid' | 'bisq', toNetwork: Network): boolean {
-  if (!toNetwork) return false; // No target network means no change needed
-  if (fromBaseModule === 'mempool') {
-    return toNetwork !== 'mainnet' && toNetwork !== 'testnet' && toNetwork !== 'signet';
-  }
-  if (fromBaseModule === 'liquid') {
-    return toNetwork !== 'liquid' && toNetwork !== 'liquidtestnet';
-  }
-  if (fromBaseModule === 'bisq') {
-    return toNetwork !== 'bisq';
-  }
-}
-
-export function getTargetUrl(toNetwork: Network, address: string, env: Env): string {
-  let targetUrl = '';
-  if (toNetwork === 'liquid' || toNetwork === 'liquidtestnet') {
-    targetUrl = env.LIQUID_WEBSITE_URL;
-    targetUrl += (toNetwork === 'liquidtestnet' ? '/testnet' : '');
-    targetUrl += '/address/';
-    targetUrl += address;
-  }
-  if (toNetwork === 'bisq') {
-    targetUrl = env.BISQ_WEBSITE_URL;
-    targetUrl += '/address/';
-    targetUrl += address;
-  }
-  if (toNetwork === 'mainnet' || toNetwork === 'testnet' || toNetwork === 'signet') {
-    targetUrl = env.MEMPOOL_WEBSITE_URL;
-    targetUrl += (toNetwork === 'mainnet' ? '' : `/${toNetwork}`);
-    targetUrl += '/address/';
-    targetUrl += address;
-  }
-  return targetUrl;
-}
-
 export function getRegex(type: RegexTypeNoAddrNoBlockHash): RegExp;
 export function getRegex(type: 'address', network: Network): RegExp;
 export function getRegex(type: 'blockhash', network: Network): RegExp;

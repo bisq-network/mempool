@@ -1,0 +1,25 @@
+<div class="container-xl">
+  <h1 style="float: left;" i18n>DAO Cycle Results</h1>
+
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+
+
+  <div class="row row-cols-1 row-cols-md-3">
+    <div class="col mb-4" *ngFor="let cycle of daoCycles$ | async;">
+    <div class="card">
+    <div class="card-body bg-warning" align>
+    <h5><b>Cycle {{ cycle.cycleIndex }}<span *ngIf="cycle.inProgress">&nbsp;[PENDING]</span></b></h5>
+        <div><fa-icon [icon]="['fas', 'clock']" [fixedWidth]="true"></fa-icon>&nbsp;Started on {{ cycle.startDate | date:'yyyy-MM-dd' }}</div>
+        <div><fa-icon [icon]="['fas', 'lightbulb']" [fixedWidth]="true"></fa-icon>&nbsp;{{ cycle.proposalCount }} proposals</div>
+        <div><fa-icon [icon]="['fas', 'area-chart']" [fixedWidth]="true"></fa-icon>&nbsp;{{ cycle.burnedAmount / 100 }} burned / {{ cycle.issuedAmount / 100 }} issued</div>
+    </div>
+    </div>
+    </div>
+  </div>
+
+
+</div>
+

@@ -12,8 +12,15 @@
             <td>{{ totalOutput / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span></td>
           </tr>
           <tr>
-            <td i18n="asset.issued-amount|Liquid Asset issued amount">Issued amount</td>
-            <td>{{ totalIssued / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span></td>
+              <td *ngIf="tx.txType=='LOCKUP'; then lockup else issued"></td>
+              <ng-template #lockup>
+                  <td>Lockup amount</td>
+                  <td>{{ totalLockup / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span></td>
+              </ng-template>
+              <ng-template #issued>
+                  <td i18n="asset.issued-amount|Liquid Asset issued amount">Issued amount</td>
+                  <td>{{ totalIssued / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span></td>
+              </ng-template>
           </tr>
         </tbody>
       </table>
@@ -29,6 +36,15 @@
             <td i18n="transaction.version">Version</td>
             <td>{{ tx.txVersion }}</td>
           </tr>
+              <td *ngIf="tx.txType=='LOCKUP'; then lockupcol2 else issuedcol2"></td>
+              <ng-template #lockupcol2>
+                  <tr>
+                      <td>Lockup duration</td>
+                      <td>{{ lockupDuration | number: '1.0-0' }} <span class="symbol">blocks</span></td>
+                  </tr>
+              </ng-template>
+              <ng-template #issuedcol2>
+              </ng-template>
         </tbody>
       </table>
     </div>

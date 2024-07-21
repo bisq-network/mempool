@@ -126,15 +126,6 @@ export class CodeTemplateComponent implements OnInit {
       if(this.network === '' || this.network === 'main') {
         codeText = this.replaceJSPlaceholder(codeText, code.codeSampleMainnet.esModule);
       }
-      if (this.network === 'testnet') {
-      codeText = this.replaceJSPlaceholder(codeText, code.codeSampleTestnet.esModule);
-      }
-      if (this.network === 'signet') {
-        codeText = this.replaceJSPlaceholder(codeText, code.codeSampleSignet.esModule);
-      }
-      if (this.network === 'liquid' || this.network === 'liquidtestnet') {
-        codeText = this.replaceJSPlaceholder(codeText, code.codeSampleLiquid.esModule);
-      }
       if (this.network === 'bisq') {
         codeText = this.replaceJSPlaceholder(codeText, code.codeSampleBisq.esModule);
       }
@@ -165,15 +156,6 @@ init();`;
       if(this.network === '' || this.network === 'main') {
         codeText = this.replaceJSPlaceholder(codeText, code.codeSampleMainnet.esModule);
       }
-      if (this.network === 'testnet') {
-      codeText = this.replaceJSPlaceholder(codeText, code.codeSampleTestnet.esModule);
-      }
-      if (this.network === 'signet') {
-        codeText = this.replaceJSPlaceholder(codeText, code.codeSampleSignet.esModule);
-      }
-      if (this.network === 'liquid' || this.network === 'liquidtestnet') {
-        codeText = this.replaceJSPlaceholder(codeText, code.codeSampleLiquid.esModule);
-      }
       if (this.network === 'bisq') {
         codeText = this.replaceJSPlaceholder(codeText, code.codeSampleBisq.esModule);
       }
@@ -185,9 +167,6 @@ init();`;
       let importText = `<script src="https://mempool.space/mempool.js"></script>`;
       if (this.env.BASE_MODULE === 'bisq') {
         importText = `<script src="https://bisq.markets/bisq.js"></script>`;
-      }
-      if (this.env.BASE_MODULE === 'liquid') {
-        importText = `<script src="https://liquid.network/liquid.js"></script>`;
       }
 
       let resultHtml = '<pre id="result"></pre>';
@@ -245,18 +224,6 @@ yarn add @mempool/liquid.js`;
 
   wrapCurlTemplate(code: any) {
     if (code.codeTemplate) {
-      if (this.network === 'testnet') {
-        return this.replaceCurlPlaceholder(code.codeTemplate.curl, code.codeSampleTestnet);
-      }
-      if (this.network === 'signet') {
-        return this.replaceCurlPlaceholder(code.codeTemplate.curl, code.codeSampleSignet);
-      }
-      if (this.network === 'liquid') {
-        return this.replaceCurlPlaceholder(code.codeTemplate.curl, code.codeSampleLiquid);
-      }
-      if (this.network === 'liquidtestnet') {
-        return this.replaceCurlPlaceholder(code.codeTemplate.curl, code.codeSampleLiquidTestnet);
-      }
       if (this.network === 'bisq') {
         return this.replaceCurlPlaceholder(code.codeTemplate.curl, code.codeSampleBisq);
       }
@@ -267,29 +234,10 @@ yarn add @mempool/liquid.js`;
   }
 
   wrapResponse(code: any) {
-    if (this.method === 'websocket') {
-      return '';
-    }
-    if (this.network === 'testnet') {
-      return code.codeSampleTestnet.response;
-    }
-    if (this.network === 'signet') {
-      return code.codeSampleSignet.response;
-    }
-    if (this.network === 'liquid') {
-      return code.codeSampleLiquid.response;
-    }
-    if (this.network === 'liquidtestnet') {
-      return code.codeSampleLiquidTestnet.response;
-    }
     if (this.network === 'bisq') {
       return code.codeSampleBisq.response;
     }
     return code.codeSampleMainnet.response;
-  }
-
-  wrapPythonTemplate(code: any) {
-    return ( ( this.network === 'testnet' || this.network === 'signet' ) ? ( code.codeTemplate.python.replace( "wss://mempool.space/api/v1/ws", "wss://mempool.space/" + this.network + "/api/v1/ws" ) ) : code.codeTemplate.python );
   }
 
   replaceJSPlaceholder(text: string, code: any) {

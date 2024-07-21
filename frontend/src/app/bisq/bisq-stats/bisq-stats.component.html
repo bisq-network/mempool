@@ -34,11 +34,15 @@
           </tr>
           <tr>
             <td i18n>Price</td>
-            <td><app-fiat [value]="price"></app-fiat></td>
+            <td><span class="green-color">{{ stats._bsqPrice | number: '1.8-8' }}</span></td>
+          </tr>
+          <tr>
+            <td i18n>USD Price</td>
+            <td><span class="green-color">{{ stats._usdPrice | number: '1.2-2' }}</span></td>
           </tr>
           <tr>
             <td i18n="BSQ token market cap">Market cap</td>
-            <td><app-fiat [value]="price * (stats.minted - stats.burnt)"></app-fiat></td>
+            <td><span class="green-color">{{ stats._marketCap | number: '1.2-2' }}</span></td>
           </tr>
         </tbody>
       </table>
@@ -79,8 +83,14 @@
       <td><span class="skeleton-loader"></span></td>
     </tr>
     <tr>
+      <td i18n>USD Price</td>
+      <td><span class="skeleton-loader"></span></td>
+    </tr>
+    <tr>
       <td i18n>Market cap</td>
       <td><span class="skeleton-loader"></span></td>
     </tr>
   </tbody>
 </ng-template>
+
+

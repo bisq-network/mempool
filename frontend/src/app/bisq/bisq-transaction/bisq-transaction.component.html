@@ -13,12 +13,6 @@
           </app-truncate>
         </span>
       </span>
-      <span class="grow"></span>
-      <div class="container-buttons">
-        <div *ngIf="(latestBlock$ | async) as latestBlock">
-          <app-confirmations [chainTip]="latestBlock?.height" [height]="bisqTx.blockHeight" [hideUnconfirmed]="true" buttonClass="float-right"></app-confirmations>
-        </div>
-      </div>
     </div>
     
       <div class="clearfix"></div>
@@ -43,15 +37,6 @@
                     <a [routerLink]="['/block/' | relativeUrl, bisqTx.blockHash]" [state]="{ data: { blockHeight: bisqTx.blockHeight } }">{{ bisqTx.blockHeight }}</a>
                   </td>
                 </tr>
-                <tr>
-                  <td class="td-width" i18n="transaction.features|Transaction features">Features</td>
-                  <td>
-                    <app-tx-features *ngIf="tx; else loadingTx" [tx]="tx"></app-tx-features>
-                    <ng-template #loadingTx>
-                      <span class="skeleton-loader"></span>
-                    </ng-template>
-                  </td>
-                </tr>
               </tbody>
             </table>
           </div>
@@ -61,19 +46,7 @@
                 <tr>
                   <td class="td-width" i18n="BSQ burnt amount">Burnt amount</td>
                   <td>
-                    {{ bisqTx.burntFee / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span> <span class="fiat"><app-bsq-amount [bsq]="bisqTx.burntFee" [forceFiat]="true" [green]="true"></app-bsq-amount></span>
-                </tr>
-                <tr>
-                  <td *only-vsize i18n="transaction.fee-per-vbyte|Transaction fee">Fee per vByte</td>
-                  <td *only-weight i18n="transaction.fee-per-wu|Transaction fee">Fee per weight unit</td>
-                  <td *ngIf="!isLoadingTx; else loadingTxFee">
-                    <app-fee-rate [fee]="tx.fee" [weight]="tx.weight"></app-fee-rate>
-                    &nbsp;
-                    <app-tx-fee-rating [tx]="tx"></app-tx-fee-rating>
-                  </td>
-                  <ng-template #loadingTxFee>
-                    <td><span class="skeleton-loader"></span></td>
-                  </ng-template>
+                    {{ bisqTx.burntFee / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span>
                 </tr>
               </tbody>
             </table>
