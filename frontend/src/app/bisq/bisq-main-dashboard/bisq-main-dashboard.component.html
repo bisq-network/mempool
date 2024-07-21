@@ -62,11 +62,7 @@
     <div class="col mb-4">
       <div class="card">
         <div class="card-body">
-          <h5 class="card-title text-center">
-            <ng-template [ngIf]="stateService.env.BASE_MODULE === 'bisq'" [ngIfElse]="nonOfficialMarkets" i18n="Bisq All Markets">Markets</ng-template>
-            <ng-template #nonOfficialMarkets i18n="Bisq Bitcoin Markets">Bitcoin Markets</ng-template>
-          </h5>
-
+          <h5 class="card-title text-center">Markets</h5>
           <div class="table-container">
             <table class="table table-borderless table-striped">
               <thead>
@@ -78,7 +74,9 @@
                 <tr *ngFor="let ticker of tickers.value; trackBy: trackByFn;">
                   <td><a [routerLink]="['/market' | relativeUrl, ticker.pair_url]">{{ ticker.name }})</a></td>
                   <td>
-                    <app-fiat *ngIf="ticker.market.rtype === 'crypto'; else fiat" [value]="ticker.last * 100000000"></app-fiat>
+                    <ng-container *ngIf="ticker.market.rtype === 'crypto'; else fiat">
+                        <span class="green-color">{{ ticker.last | number: '1.8-8' }}</span>
+                    </ng-container>
                     <ng-template #fiat>
                       <span class="green-color">{{ ticker.last | currency: ticker.market.rsymbol }}</span>
                     </ng-template>
@@ -112,6 +110,9 @@
     <td *ngFor="let j of [1, 2, 3]"><span class="skeleton-loader"></span></td>
   </tr>
 </ng-template>
+
+
+
 
 <ng-template #loadingSpinner>
   <div class="text-center loadingGraphs">

@@ -4,17 +4,20 @@ import { RequiredSpec } from '../../mempool.interfaces';
 import bisq from './bisq';
 import { MarketsApiError } from './interfaces';
 import marketsApi from './markets-api';
+import bisqPriceService from './price-service';
 
 class BisqRoutes {
   public initRoutes(app: Application) {
     app
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/stats', this.getBisqStats)
+      .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/dao-cycles', this.getDaoCycles)
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/tx/:txId', this.getBisqTransaction)
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/block/:hash', this.getBisqBlock)
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/blocks/tip/height', this.getBisqTip)
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/blocks/:index/:length', this.getBisqBlocks)
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/address/:address', this.getBisqAddress)
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/txs/:index/:length', this.getBisqTransactions)
+      .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/markets/price/:currency', this.getBisqMarketPrice)
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/markets/currencies', this.getBisqMarketCurrencies.bind(this))
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/markets/depth', this.getBisqMarketDepth.bind(this))
       .get(config.MEMPOOL.API_URL_PREFIX + 'bisq/markets/hloc', this.getBisqMarketHloc.bind(this))
@@ -33,14 +36,19 @@ class BisqRoutes {
     res.json(result);
   }
 
+  private getDaoCycles(req: Request, res: Response) {
+    const result = bisq.getDaoCycles();
+    res.json(result);
+  }
+
   private getBisqTip(req: Request, res: Response) {
     const result = bisq.getLatestBlockHeight();
     res.type('text/plain');
     res.send(result.toString());
   }
 
-  private getBisqTransaction(req: Request, res: Response) {
-    const result = bisq.getTransaction(req.params.txId);
+  private async getBisqTransaction(req: Request, res: Response) {
+    const result = await bisq.$getTransaction(req.params.txId);
     if (result) {
       res.json(result);
     } else {
@@ -48,7 +56,7 @@ class BisqRoutes {
     }
   }
 
-  private getBisqTransactions(req: Request, res: Response) {
+  private async getBisqTransactions(req: Request, res: Response) {
     const types: string[] = [];
     req.query.types = req.query.types || [];
     if (!Array.isArray(req.query.types)) {
@@ -64,13 +72,13 @@ class BisqRoutes {
 
     const index = parseInt(req.params.index, 10) || 0;
     const length = parseInt(req.params.length, 10) > 100 ? 100 : parseInt(req.params.length, 10) || 25;
-    const [transactions, count] = bisq.getTransactions(index, length, types);
+    const [transactions, count] = await bisq.$getTransactions(index, length, types);
     res.header('X-Total-Count', count.toString());
     res.json(transactions);
   }
 
-  private getBisqBlock(req: Request, res: Response) {
-    const result = bisq.getBlock(req.params.hash);
+  private async getBisqBlock(req: Request, res: Response) {
+    const result = await bisq.$getBlock(req.params.hash);
     if (result) {
       res.json(result);
     } else {
@@ -78,20 +86,29 @@ class BisqRoutes {
     }
   }
 
-  private getBisqBlocks(req: Request, res: Response) {
+  private async getBisqBlocks(req: Request, res: Response) {
     const index = parseInt(req.params.index, 10) || 0;
     const length = parseInt(req.params.length, 10) > 100 ? 100 : parseInt(req.params.length, 10) || 25;
-    const [transactions, count] = bisq.getBlocks(index, length);
+    const [transactions, count] = await bisq.$getBlocks(index, length);
     res.header('X-Total-Count', count.toString());
     res.json(transactions);
   }
 
-  private getBisqAddress(req: Request, res: Response) {
-    const result = bisq.getAddress(req.params.address.substr(1));
+  private async getBisqAddress(req: Request, res: Response) {
+    const result = await bisq.$getAddress(req.params.address.substr(1));
     if (result) {
       res.json(result);
     } else {
       res.status(404).send('Bisq address not found');
+    }
+  }
+
+  private async getBisqMarketPrice(req: Request, res: Response) {
+    const result = bisqPriceService.getPrice(req.params.currency);
+    if (result) {
+      res.json(result);
+    } else {
+      res.status(404).send('Bisq market price not found');
     }
   }
 

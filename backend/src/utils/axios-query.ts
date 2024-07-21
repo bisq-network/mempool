@@ -1,22 +1,24 @@
-import axios, { AxiosResponse } from 'axios';
+import { default as axios_ } from 'axios'
+import { AxiosResponse } from 'axios';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import backendInfo from '../api/backend-info';
 import config from '../config';
 import logger from '../logger';
 import * as https from 'https';
 
-export async function query(path): Promise<object | undefined> {
+
+export async function axiosQuery(path): Promise<string> {
+
+
  type axiosOptions = {
-   headers: {
-     'User-Agent': string
-   };
+   headers: {'User-Agent': string };
    timeout: number;
    httpsAgent?: https.Agent;
  };
  const setDelay = (secs: number = 1): Promise<void> => new Promise(resolve => setTimeout(() => resolve(), secs * 1000));
  const axiosOptions: axiosOptions = {
    headers: {
-     'User-Agent': (config.MEMPOOL.USER_AGENT === 'mempool') ? `mempool/v${backendInfo.getBackendInfo().version}` : `${config.MEMPOOL.USER_AGENT}`
+     'User-Agent': (config.MEMPOOL.USER_AGENT === 'bisq') ? `bisq/v${backendInfo.getBackendInfo().version}` : `${config.MEMPOOL.USER_AGENT}`
    },
    timeout: config.SOCKS5PROXY.ENABLED ? 30000 : 10000
  };
@@ -40,15 +42,18 @@ export async function query(path): Promise<object | undefined> {
          // Retry with different tor circuits https://stackoverflow.com/a/64960234
          socksOptions.username = `circuit${retry}`;
        }
-
        axiosOptions.httpsAgent = new SocksProxyAgent(socksOptions);
      }
 
+     let httpsAgent = axiosOptions.httpsAgent
+     let httpAgent = axiosOptions.httpsAgent
+     let axios = axios_.create({httpsAgent, httpAgent})
+     //logger.info(`axiosOptions= ${JSON.stringify(axiosOptions)}`);
      const data: AxiosResponse = await axios.get(path, axiosOptions);
      if (data.statusText === 'error' || !data.data) {
        throw new Error(`Could not fetch data from ${path}, Error: ${data.status}`);
      }
-     return data.data;
+     return JSON.stringify(data.data);
    } catch (e) {
      logger.warn(`Could not connect to ${path} (Attempt ${retry + 1}/${config.MEMPOOL.EXTERNAL_MAX_RETRY}). Reason: ` + (e instanceof Error ? e.message : e));
      retry++;
@@ -59,5 +64,5 @@ export async function query(path): Promise<object | undefined> {
  }
 
  logger.err(`Could not connect to ${path}. All ${config.MEMPOOL.EXTERNAL_MAX_RETRY} attempts failed`);
- return undefined;
+ return '';
 }

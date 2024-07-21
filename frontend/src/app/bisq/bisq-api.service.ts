@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpResponse, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { BisqTransaction, BisqBlock, BisqStats, MarketVolume, Trade, Markets, Tickers, Offers, Currencies, HighLowOpenClose, SummarizedInterval } from './bisq.interfaces';
+import { DaoCycle, BisqTransaction, BisqBlock, BisqStats, MarketVolume, Trade, Markets, Tickers, Offers, Currencies, HighLowOpenClose, SummarizedInterval } from './bisq.interfaces';
 
 const API_BASE_URL = '/bisq/api';
 
@@ -17,6 +17,10 @@ export class BisqApiService {
 
   getStats$(): Observable<BisqStats> {
     return this.httpClient.get<BisqStats>(API_BASE_URL + '/stats');
+  }
+
+  getDaoCycles$(): Observable<DaoCycle[]> {
+    return this.httpClient.get<DaoCycle[]>(API_BASE_URL + '/dao-cycles');
   }
 
   getTransaction$(txId: string): Observable<BisqTransaction> {
@@ -41,6 +45,10 @@ export class BisqApiService {
 
   getAddress$(address: string): Observable<BisqTransaction[]> {
     return this.httpClient.get<BisqTransaction[]>(API_BASE_URL + '/address/' + address);
+  }
+
+  getMarketPrice$(currency: string): Observable<number> {
+    return this.httpClient.get<number>(API_BASE_URL + '/markets/price/' + currency);
   }
 
   getMarkets$(): Observable<Markets> {

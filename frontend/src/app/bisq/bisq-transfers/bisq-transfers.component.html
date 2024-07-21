@@ -36,7 +36,7 @@
       <table class="table table-borderless smaller-text table-xs"  style="margin: 0;">
         <tbody>
           <ng-template ngFor let-output [ngForOf]="tx.outputs" [ngForTrackBy]="trackByIndexFn">
-            <tr *ngIf="output.isVerified && output.opReturn === undefined">
+            <tr *ngIf="output.isVerified && (output.opReturn === undefined || output.opReturn === null)">
               <td>
                 <a [routerLink]="['/address/' | relativeUrl, 'B' + output.address]" title="B{{ output.address }}">
                   <span class="d-block d-lg-none">B{{ output.address | shortenString : 16 }}</span>
@@ -65,19 +65,15 @@
 
   <div>
     <div class="transaction-fee" *ngIf="showConfirmations && tx.burntFee">
-      <ng-container i18n="BSQ burnt amount">Burnt amount</ng-container>: {{ tx.burntFee / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span> <span class="extra-info"><span class="fiat"><app-bsq-amount [bsq]="tx.burntFee" [forceFiat]="true" [green]="true"></app-bsq-amount></span></span>
+      <ng-container i18n="BSQ burnt amount">Burnt amount</ng-container>: {{ tx.burntFee / 100 | number: '1.2-2' }} <span class="symbol">BSQ</span>
     </div>
-
+<!--
     <div class="btn-container">
-      <span *ngIf="showConfirmations && latestBlock$ | async as latestBlock">
-        <app-confirmations [chainTip]="latestBlock?.height" [height]="tx.blockHeight" [hideUnconfirmed]="true" buttonClass="mt-2"></app-confirmations>
-        &nbsp;
-      </span>
       <button type="button" class="btn btn-sm btn-primary mt-2" (click)="switchCurrency()">
         <app-bsq-amount [bsq]="totalOutput"></app-bsq-amount>
       </button>
     </div>
-    <div class="clearfix"></div>
+-->    <div class="clearfix"></div>
   </div>
 
 </div>

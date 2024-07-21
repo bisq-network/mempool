@@ -24,7 +24,6 @@ class BackendInfo {
       hostname: os.hostname(),
       version: versionInfo.version,
       gitCommit: versionInfo.gitCommit,
-      lightning: config.LIGHTNING.ENABLED
     };
   }
 

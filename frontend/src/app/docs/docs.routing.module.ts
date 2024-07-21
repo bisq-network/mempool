@@ -8,7 +8,6 @@ const browserWindowEnv = browserWindow.__env || {};
 
 let routes: Routes = [];
 
-if (browserWindowEnv.BASE_MODULE && (browserWindowEnv.BASE_MODULE === 'bisq' || browserWindowEnv.BASE_MODULE === 'liquid')) {
   routes = [
     {
       path: '',
@@ -30,32 +29,6 @@ if (browserWindowEnv.BASE_MODULE && (browserWindowEnv.BASE_MODULE === 'bisq' || 
       pathMatch: 'full'
     }
   ];
-} else {
-  routes = [
-    {
-      path: '',
-      pathMatch: 'full',
-      redirectTo: 'faq'
-    },
-    {
-      path: 'api/:type',
-      component: DocsComponent
-    },
-    {
-      path: 'faq',
-      data: { networks: ['bitcoin'] },
-      component: DocsComponent
-    },
-    {
-      path: 'api',
-      redirectTo: 'api/rest'
-    },
-    {
-      path: '**',
-      redirectTo: 'api/faq'
-    }
-  ];
-}
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],

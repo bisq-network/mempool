@@ -2,11 +2,12 @@
 
   <ng-container *ngIf="hlocData$ | async as hlocData; else loadingSpinner">
 
+      <ng-container *ngIf="marketPrice$ | async as marketPrice; else loadingSpinner">
     <ng-container *ngIf="currency$ | async as currency; else loadingSpinner">
       <h1>{{ currency.market.rtype === 'crypto' ? currency.market.lname : currency.market.rname }} - {{ currency.pair }}</h1>
       <div class="priceheader">
-          <ng-container *ngIf="currency.market.rtype === 'fiat'; else headerPriceCrypto"><span class="green-color">{{ hlocData.hloc[hlocData.hloc.length - 1].close | currency: currency.market.rsymbol }}</span></ng-container>
-          <ng-template #headerPriceCrypto>{{ hlocData.hloc[hlocData.hloc.length - 1].close | number: '1.' + currency.market.rprecision + '-' + currency.market.rprecision }} {{ currency.market.rsymbol }}</ng-template>
+          <ng-container *ngIf="currency.market.rtype === 'fiat'; else headerPriceCrypto"><span class="green-color">{{ marketPrice | currency: currency.market.rsymbol }}</span></ng-container>
+          <ng-template #headerPriceCrypto>{{ marketPrice | number: '1.8-8' }} {{ currency.market.rsymbol }}</ng-template>
       </div>
   
       <form [formGroup]="radioGroupForm" class="mb-3 radio-form">
@@ -61,6 +62,7 @@
         <app-bisq-trades [trades$]="trades$" [market]="currency.market"></app-bisq-trades>
       </ng-container>
 
+    </ng-container>
     </ng-container>
   </ng-container>
 

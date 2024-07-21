@@ -22,6 +22,7 @@ import { BisqAddressComponent } from './bisq-address/bisq-address.component';
 import { BisqStatsComponent } from './bisq-stats/bisq-stats.component';
 import { BsqAmountComponent } from './bsq-amount/bsq-amount.component';
 import { BisqTradesComponent } from './bisq-trades/bisq-trades.component';
+import { BisqCyclesComponent } from './bisq-cycles/bisq-cycles.component';
 import { CommonModule } from '@angular/common';
 import { AutofocusDirective } from '../components/ngx-bootstrap-multiselect/autofocus.directive';
 import { MultiSelectSearchFilter } from '../components/ngx-bootstrap-multiselect/search-filter.pipe';
@@ -48,6 +49,7 @@ import { BisqMasterPageComponent } from '../components/bisq-master-page/bisq-mas
     BisqDashboardComponent,
     BisqMarketComponent,
     BisqTradesComponent,
+    BisqCyclesComponent,
     BisqMainDashboardComponent,
     NgxDropdownMultiselectComponent,
     AutofocusDirective,

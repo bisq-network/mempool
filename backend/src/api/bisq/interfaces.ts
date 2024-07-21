@@ -33,6 +33,11 @@ export interface BisqStats {
   addresses: number;
   unspent_txos: number;
   spent_txos: number;
+  height: number;
+  genesisHeight: number;
+  _bsqPrice: number;
+  _usdPrice: number;
+  _marketCap: number;
 }
 
 interface BisqInput {
@@ -91,6 +96,17 @@ export interface BisqTrade {
   trade_date: number;
   market?: string;
 }
+
+export interface DaoCycle {
+    heightOfFirstBlock: number;
+    cycleIndex: number;
+    startDate: number; // in ms
+    proposalCount: number;
+    burnedAmount: number;
+    issuedAmount: number;
+    inProgress: boolean;
+}
+
 
 export interface Currencies { [txid: string]: Currency; }
 

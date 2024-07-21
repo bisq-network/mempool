@@ -17,8 +17,7 @@
 
   <div class="container-info">
     <h1>
-      <ng-template [ngIf]="stateService.env.BASE_MODULE === 'bisq'" [ngIfElse]="nonOfficialMarkets" i18n="Bisq All Markets">Markets</ng-template>
-      <ng-template #nonOfficialMarkets i18n="Bisq Bitcoin Markets">Bitcoin Markets</ng-template>
+      Markets
     </h1>
     <ng-container *ngIf="{ value: (tickers$ | async) } as tickers">
       <div class="table-container">
@@ -33,14 +32,14 @@
             <tr *ngFor="let ticker of tickers.value; trackBy: trackByFn;">
               <td><a [routerLink]="['/market' | relativeUrl, ticker.pair_url]">{{ ticker.name }})</a></td>
               <td>
-                <app-fiat *ngIf="ticker.market.rtype === 'crypto'; else fiat" [value]="ticker.last * 100000000"></app-fiat>
+                <ng-container *ngIf="ticker.market.rtype === 'crypto'; else fiat">
+                    <span class="green-color">{{ ticker.last | number: '1.8-8' }}</span>
+                </ng-container>
                 <ng-template #fiat>
                   <span class="green-color">{{ ticker.last | currency: ticker.market.rsymbol }}</span>
                 </ng-template>
               </td>
-              <td>
-                <app-fiat [value]="ticker.volume?.volume"></app-fiat>
-              </td>
+              <td>{{ ticker.volume?.volume ? ticker.volume?.volume : 0  }}</td>
               <td>{{ ticker.volume?.num_trades ? ticker.volume?.num_trades : 0 }}</td>
             </tr> 
           </tbody>

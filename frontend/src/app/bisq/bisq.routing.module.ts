@@ -7,10 +7,10 @@ import { BisqBlockComponent } from './bisq-block/bisq-block.component';
 import { BisqBlocksComponent } from './bisq-blocks/bisq-blocks.component';
 import { BisqAddressComponent } from './bisq-address/bisq-address.component';
 import { BisqStatsComponent } from './bisq-stats/bisq-stats.component';
+import { BisqCyclesComponent } from './bisq-cycles/bisq-cycles.component';
 import { BisqDashboardComponent } from './bisq-dashboard/bisq-dashboard.component';
 import { BisqMarketComponent } from './bisq-market/bisq-market.component';
 import { BisqMainDashboardComponent } from './bisq-main-dashboard/bisq-main-dashboard.component';
-import { PushTransactionComponent } from '../components/push-transaction/push-transaction.component';
 
 const routes: Routes = [
   {
@@ -32,13 +32,14 @@ const routes: Routes = [
         component: BisqTransactionsComponent
       },
       {
+        path: 'cycles',
+        data: { networks: ['bisq'] },
+        component: BisqCyclesComponent
+      },
+      {
         path: 'market/:pair',
         data: { networkSpecific: true },
         component: BisqMarketComponent,
-      },
-      {
-        path: 'tx/push',
-        component: PushTransactionComponent,
       },
       {
         path: 'tx/:id',
@@ -76,10 +77,6 @@ const routes: Routes = [
       {
         path: 'api',
         loadChildren: () => import('../docs/docs.module').then(m => m.DocsModule)
-      },
-      {
-        path: 'terms-of-service',
-        loadChildren: () => import('../components/terms-of-service/terms-of-service.module').then(m => m.TermsOfServiceModule),
       },
       {
         path: '**',

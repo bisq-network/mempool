@@ -5,7 +5,6 @@ import { ParamMap, ActivatedRoute } from '@angular/router';
 import { Subscription, of } from 'rxjs';
 import { BisqTransaction } from '../bisq.interfaces';
 import { BisqApiService } from '../bisq-api.service';
-import { WebsocketService } from '../../services/websocket.service';
 
 @Component({
   selector: 'app-bisq-address',
@@ -23,15 +22,12 @@ export class BisqAddressComponent implements OnInit, OnDestroy {
   totalSent = 0;
 
   constructor(
-    private websocketService: WebsocketService,
     private route: ActivatedRoute,
     private seoService: SeoService,
     private bisqApiService: BisqApiService,
   ) { }
 
   ngOnInit() {
-    this.websocketService.want(['blocks']);
-
     this.mainSubscription = this.route.paramMap
       .pipe(
         switchMap((params: ParamMap) => {

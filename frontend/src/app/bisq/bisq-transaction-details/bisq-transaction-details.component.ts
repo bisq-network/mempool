@@ -13,7 +13,8 @@ export class BisqTransactionDetailsComponent implements OnChanges {
   totalInput: number;
   totalOutput: number;
   totalIssued: number;
-
+  totalLockup: number;
+  lockupDuration: number = 0;
   constructor() { }
 
   ngOnChanges() {
@@ -22,5 +23,11 @@ export class BisqTransactionDetailsComponent implements OnChanges {
     this.totalIssued = this.tx.outputs
       .filter((output) => output.isVerified && output.txOutputType === 'ISSUANCE_CANDIDATE_OUTPUT')
       .reduce((acc, output) => acc + output.bsqAmount, 0);
+    this.totalLockup = this.tx.outputs
+      .filter((output) => output.isVerified && output.txOutputType === 'LOCKUP_OUTPUT')
+      .reduce((acc, output) => acc + output.bsqAmount, 0);
+    this.lockupDuration = this.tx.outputs
+      .filter((output) => output.isVerified && output.txOutputType === 'LOCKUP_OUTPUT' && output.lockTime > 0)
+      .reduce((acc, output) => acc + output.lockTime, 0);
   }
 }

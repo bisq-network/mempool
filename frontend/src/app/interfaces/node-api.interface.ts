@@ -1,4 +1,3 @@
-import { Block, Transaction } from "./electrs.interface";
 
 export interface OptimizedMempoolStats {
   added: number;
@@ -103,9 +102,6 @@ export interface FederationUtxo {
   pegtxid: string;
   pegindex: number;
   pegblocktime: number;
-  timelock: number;
-  expiredAt: number;
-  isDust?: boolean;
 }
 
 export interface RecentPeg {
@@ -116,13 +112,6 @@ export interface RecentPeg {
   bitcointxid: string;
   bitcoinindex: number;
   blocktime: number;
-}
-
-export interface AuditStatus {
-  bitcoinBlocks: number;
-  bitcoinHeaders: number;
-  lastBlockAudit: number;
-  isAuditSynced: boolean;
 }
 
 export interface ITranslators { [language: string]: string; }
@@ -201,27 +190,6 @@ export interface BlockExtension {
   }
 }
 
-export interface BlockExtended extends Block {
-  extras?: BlockExtension;
-}
-
-export interface BlockAudit extends BlockExtended {
-  missingTxs: string[],
-  addedTxs: string[],
-  freshTxs: string[],
-  sigopTxs: string[],
-  fullrbfTxs: string[],
-  acceleratedTxs: string[],
-  matchRate: number,
-  expectedFees: number,
-  expectedWeight: number,
-  feeDelta?: number,
-  weightDelta?: number,
-  txDelta?: number,
-  template: TransactionStripped[],
-  transactions: TransactionStripped[],
-}
-
 export interface TransactionStripped {
   txid: string;
   fee: number;
@@ -264,11 +232,6 @@ export interface BlockSizesAndWeights {
     avgHeight: number;
     avgWeight: number;
   }[];
-}
-
-export interface AuditScore {
-  hash: string;
-  matchRate?: number;
 }
 
 export interface ITopNodesPerChannels {
@@ -378,7 +341,7 @@ export interface INode {
 
 export interface Acceleration {
   txid: string;
-  status: 'requested' | 'accelerating' | 'completed_provisional' | 'completed' | 'failed' | 'failed_provisional';
+  status: 'requested' | 'accelerating' | 'mined' | 'completed' | 'failed';
   pools: number[];
   feePaid: number;
   added: number; // timestamp
@@ -396,25 +359,8 @@ export interface Acceleration {
 }
 
 export interface AccelerationHistoryParams {
-  status?: string;
-  timeframe?: string;
-  poolUniqueId?: number;
-  blockHash?: string;
-  blockHeight?: number;
-  page?: number;
-  pageLength?: number;
-}
-
-export interface AccelerationInfo {
-  txid: string,
-  height: number,
-  pool: {
-    id: number,
-    slug: string,
-    name: string,
-  },
-  effective_vsize: number,
-  effective_fee: number,
-  boost_rate: number,
-  boost_cost: number,
+  timeframe?: string,
+  status?: string,
+  pool?: string,
+  blockHash?: string,
 }

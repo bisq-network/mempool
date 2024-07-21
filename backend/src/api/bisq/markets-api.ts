@@ -1,5 +1,8 @@
 import { Currencies, OffersData, TradesData, Depth, Currency, Interval, HighLowOpenClose,
   Markets, Offers, Offer, BisqTrade, MarketVolume, Tickers, Ticker, SummarizedIntervals, SummarizedInterval } from './interfaces';
+import { Common } from '../common';
+import logger from '../../logger';
+import bisqPriceService from './price-service';
 
 const strtotime = require('./strtotime');
 
@@ -15,23 +18,26 @@ class BisqMarketsApi {
   private tradeDataByMarket: { [market: string]: TradesData[] } = {};
   private tickersCache: Ticker | Tickers | null = null;
 
-  constructor() { }
+  constructor() {
+  }
 
   setOffersData(offers: OffersData[]) {
     this.offersData = offers;
   }
 
   setTradesData(trades: TradesData[]) {
-    this.tradesData = trades;
-    this.tradeDataByMarket = {};
+    logger.info(`Updating Bisq Market Trades Data with ${trades.length} records.`);
+    //this.tradeDataByMarket = {};
 
-    this.tradesData.forEach((trade) => {
+    trades.forEach((trade) => {
       trade._market = trade.currencyPair.toLowerCase().replace('/', '_');
       if (!this.tradeDataByMarket[trade._market]) {
         this.tradeDataByMarket[trade._market] = [];
       }
       this.tradeDataByMarket[trade._market].push(trade);
+      this.tradesData.push(trade);
     });
+    this.updateBsqPrice();  // whenever trades change, recalc BSQ price average
   }
 
   setCurrencyData(cryptoCurrency: Currency[], fiatCurrency: Currency[], activeCryptoCurrency: Currency[], activeFiatCurrency: Currency[]) {
@@ -55,13 +61,24 @@ class BisqMarketsApi {
   }
 
   updateCache() {
+    logger.debug("BisqMarketsApi updateCache");
     this.tickersCache = null;
     this.tickersCache = this.getTicker();
   }
 
-  getCurrencies(
-    type: 'crypto' | 'fiat' | 'active' | 'all' = 'all',
-  ): Currencies {
+    private updateBsqPrice() {
+        var trades: BisqTrade[] = this.getTrades("bsq_btc");
+        const prices: number[] = [];
+        trades.forEach((trade) => {
+          prices.push(parseFloat(trade.price));
+        });
+        prices.sort((a, b) => a - b);
+        let bsqPrice = Common.median(prices);
+        bisqPriceService.setBsqPrice(bsqPrice);
+        logger.debug(`updated Bisq market price: ${bsqPrice}, ${prices.length} reference prices used.`);
+    }
+    
+  getCurrencies(type: 'crypto' | 'fiat' | 'active' | 'all' = 'all',): Currencies {
     let currencies: Currency[];
 
     switch (type) {
@@ -115,7 +132,7 @@ class BisqMarketsApi {
     direction?: 'buy' | 'sell',
   ): Offers {
     const currencyPair = market.replace('_', '/').toUpperCase();
-
+    logger.warn(`getOffers: ${currencyPair}`);
     let buys: Offer[] | null = null;
     let sells: Offer[] | null = null;
 
@@ -142,7 +159,9 @@ class BisqMarketsApi {
   }
 
   getMarkets(): Markets {
+    var counter = 0;
     const allCurrencies = this.getCurrencies();
+
     const activeCurrencies = this.getCurrencies('active');
     const markets = {};
 
@@ -150,9 +169,8 @@ class BisqMarketsApi {
       if (allCurrencies[currency].code === 'BTC') {
         continue;
       }
-
       const isFiat = allCurrencies[currency]._type === 'fiat';
-      const pmarketname = allCurrencies['BTC']['name'];
+      const pmarketname = allCurrencies['BTC']['name']; // JMC HERE
 
       const lsymbol = isFiat ? 'BTC' : currency;
       const rsymbol = isFiat ? currency : 'BTC';
@@ -176,8 +194,9 @@ class BisqMarketsApi {
         'rtype': rtype,
         'name': lname + '/' + rname,
       };
+      counter++;
     }
-
+    logger.warn(`getMarkets returning ${Object.keys(markets).length} items`);
     return markets;
   }
 
@@ -235,6 +254,7 @@ class BisqMarketsApi {
     milliseconds?: boolean,
     timestamp: 'no' | 'yes' = 'yes',
   ): MarketVolume[] {
+
     if (milliseconds) {
       timestamp_from = timestamp_from ? timestamp_from / 1000 : timestamp_from;
       timestamp_to = timestamp_to ? timestamp_to / 1000 : timestamp_to;
@@ -285,17 +305,20 @@ class BisqMarketsApi {
       }
     }
 
+    logger.debug(`getVolumes returning ${marketVolumes.length} items.`);
     return marketVolumes;
   }
 
   getTicker(
     market?: string,
   ): Tickers | Ticker | null {
+
     if (market) {
       return this.getTickerFromMarket(market);
     }
 
     if (this.tickersCache) {
+      logger.debug(`returning ${Object.keys(this.tickersCache).length} tickers from cache`);
       return this.tickersCache;
     }
 
@@ -306,7 +329,7 @@ class BisqMarketsApi {
         tickers[allMarkets[m].pair] = this.getTickerFromMarket(allMarkets[m].pair);
       }
     }
-
+    logger.debug(`returning ${Object.keys(tickers).length} tickers`);
     return tickers;
   }
 
@@ -314,13 +337,14 @@ class BisqMarketsApi {
     let ticker: Ticker;
     const timestamp_from = strtotime('-24 hour');
     const timestamp_to = new Date().getTime() / 1000;
-    const trades = this.getTradesByCriteria(market, timestamp_to, timestamp_from,
-      undefined, undefined, undefined, 'asc', Number.MAX_SAFE_INTEGER);
-
-    const periods: SummarizedInterval[] = Object.values(this.getTradesSummarized(trades, timestamp_from));
 
     const allCurrencies = this.getCurrencies();
     const currencyRight = allCurrencies[market.split('_')[1].toUpperCase()];
+    logger.debug(`getTickerFromMarket: ${market}`);
+
+    const trades = this.getTradesByCriteria(market, timestamp_to, timestamp_from,
+      undefined, undefined, undefined, 'asc', Number.MAX_SAFE_INTEGER);
+    const periods: SummarizedInterval[] = Object.values(this.getTradesSummarized(trades, timestamp_from));
 
     if (periods[0]) {
       ticker = {
@@ -464,21 +488,22 @@ class BisqMarketsApi {
     const trades = this.getTradesByCriteria(undefined, timestamp_to, timestamp_from,
       undefined, undefined, undefined, 'asc', Number.MAX_SAFE_INTEGER);
 
-    const markets: any = {};
+    const volumes: any = {};
 
     for (const trade of trades) {
-      if (!markets[trade._market]) {
-        markets[trade._market] = {
+      if (!volumes[trade._market]) {
+        volumes[trade._market] = {
           'volume': 0,
           'num_trades': 0,
         };
       }
 
-      markets[trade._market]['volume'] += this.fiatCurrenciesIndexed[trade.currency] ? trade._tradeAmount : trade._tradeVolume;
-      markets[trade._market]['num_trades']++;
+      volumes[trade._market]['volume'] += this.fiatCurrenciesIndexed[trade.currency] ? trade._tradeAmount : trade._tradeVolume;
+      volumes[trade._market]['num_trades']++;
     }
 
-    return markets;
+    logger.debug(`VolumesByTime returning ${volumes.length} items.`);
+    return volumes;
   }
 
   private getTradesSummarized(trades: TradesData[], timestamp_from: number, interval?: string): SummarizedIntervals {
@@ -528,6 +553,24 @@ class BisqMarketsApi {
       }
     }
     return intervals;
+  }
+
+  public getOldestTradeDate(): number {
+    const tradesDataSorted = this.tradesData.slice();
+    let ts = tradesDataSorted.at(-1);
+    if (ts) {
+        return ts.tradeDate;
+    }
+    return 0;
+  }
+
+  public getNewestTradeDate(): number {
+    const tradesDataSorted = this.tradesData.slice();
+    let ts = tradesDataSorted.at(0);
+    if (ts) {
+        return ts.tradeDate;
+    }
+    return 0;
   }
 
   private getTradesByCriteria(

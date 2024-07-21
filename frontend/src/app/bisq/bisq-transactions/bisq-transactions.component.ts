@@ -4,11 +4,9 @@ import { BisqTransaction, BisqOutput } from '../bisq.interfaces';
 import { Observable, Subscription } from 'rxjs';
 import { switchMap, map, tap } from 'rxjs/operators';
 import { BisqApiService } from '../bisq-api.service';
-import { SeoService } from '../../services/seo.service';
 import { UntypedFormGroup, UntypedFormBuilder } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { IMultiSelectOption, IMultiSelectSettings, IMultiSelectTexts } from '../../components/ngx-bootstrap-multiselect/types'
-import { WebsocketService } from '../../services/websocket.service';
 
 @Component({
   selector: 'app-bisq-transactions',
@@ -67,9 +65,7 @@ export class BisqTransactionsComponent implements OnInit, OnDestroy {
     'PROOF_OF_BURN', 'PROPOSAL', 'REIMBURSEMENT_REQUEST', 'TRANSFER_BSQ', 'UNLOCK', 'VOTE_REVEAL', 'IRREGULAR'];
 
   constructor(
-    private websocketService: WebsocketService,
     private bisqApiService: BisqApiService,
-    private seoService: SeoService,
     private formBuilder: UntypedFormBuilder,
     private route: ActivatedRoute,
     private router: Router,
@@ -77,10 +73,6 @@ export class BisqTransactionsComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.websocketService.want(['blocks']);
-    this.seoService.setTitle($localize`:@@add4cd82e3e38a3110fe67b3c7df56e9602644ee:Transactions`);
-    this.seoService.setDescription($localize`:@@meta.description.bisq.transactions:See recent BSQ transactions: amount, txid, associated Bitcoin block, transaction type, and more.`);
-
     this.radioGroupForm = this.formBuilder.group({
       txTypes: [this.txTypesDefaultChecked],
     });
