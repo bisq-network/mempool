@@ -323,7 +323,7 @@ MINFEE_HOME=/minfee
 
 ##### git repo settings, shouldn't need changing
 
-MEMPOOL_REPO_URL=https://github.com/mempool/mempool
+MEMPOOL_REPO_URL=https://github.com/bisq-network/mempool
 MEMPOOL_REPO_NAME=mempool
 MEMPOOL_REPO_BRANCH=master
 MEMPOOL_LATEST_RELEASE=master
