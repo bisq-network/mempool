@@ -12,7 +12,6 @@ import diskCache from './api/disk-cache';
 import statistics from './api/statistics/statistics';
 import websocketHandler from './api/websocket-handler';
 import bisq from './api/bisq/bisq';
-import bisqMarkets from './api/bisq/markets';
 import logger from './logger';
 import backendInfo from './api/backend-info';
 import loadingIndicators from './api/loading-indicators';
@@ -184,8 +183,6 @@ class Server {
     if (config.BISQ.ENABLED) {
       bisq.startBisqService();
       bisq.setPriceCallbackFunction((price) => websocketHandler.setExtraInitData('bsq-price', price));
-      blocks.setNewBlockCallback(bisq.handleNewBitcoinBlock.bind(bisq));
-      bisqMarkets.startBisqService();
     }
 
     if (config.LIGHTNING.ENABLED) {

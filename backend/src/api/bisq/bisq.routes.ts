@@ -39,8 +39,8 @@ class BisqRoutes {
     res.send(result.toString());
   }
 
-  private getBisqTransaction(req: Request, res: Response) {
-    const result = bisq.getTransaction(req.params.txId);
+  private async getBisqTransaction(req: Request, res: Response) {
+    const result = await bisq.$getTransaction(req.params.txId);
     if (result) {
       res.json(result);
     } else {
@@ -48,7 +48,7 @@ class BisqRoutes {
     }
   }
 
-  private getBisqTransactions(req: Request, res: Response) {
+  private async getBisqTransactions(req: Request, res: Response) {
     const types: string[] = [];
     req.query.types = req.query.types || [];
     if (!Array.isArray(req.query.types)) {
@@ -64,13 +64,13 @@ class BisqRoutes {
 
     const index = parseInt(req.params.index, 10) || 0;
     const length = parseInt(req.params.length, 10) > 100 ? 100 : parseInt(req.params.length, 10) || 25;
-    const [transactions, count] = bisq.getTransactions(index, length, types);
+    const [transactions, count] = await bisq.$getTransactions(index, length, types);
     res.header('X-Total-Count', count.toString());
     res.json(transactions);
   }
 
-  private getBisqBlock(req: Request, res: Response) {
-    const result = bisq.getBlock(req.params.hash);
+  private async getBisqBlock(req: Request, res: Response) {
+    const result = await bisq.$getBlock(req.params.hash);
     if (result) {
       res.json(result);
     } else {
@@ -78,16 +78,16 @@ class BisqRoutes {
     }
   }
 
-  private getBisqBlocks(req: Request, res: Response) {
+  private async getBisqBlocks(req: Request, res: Response) {
     const index = parseInt(req.params.index, 10) || 0;
     const length = parseInt(req.params.length, 10) > 100 ? 100 : parseInt(req.params.length, 10) || 25;
-    const [transactions, count] = bisq.getBlocks(index, length);
+    const [transactions, count] = await bisq.$getBlocks(index, length);
     res.header('X-Total-Count', count.toString());
     res.json(transactions);
   }
 
-  private getBisqAddress(req: Request, res: Response) {
-    const result = bisq.getAddress(req.params.address.substr(1));
+  private async getBisqAddress(req: Request, res: Response) {
+    const result = await bisq.$getAddress(req.params.address.substr(1));
     if (result) {
       res.json(result);
     } else {
