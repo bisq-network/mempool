@@ -96,7 +96,8 @@
   },
   "BISQ": {
     "ENABLED": true,
-    "DATA_PATH": "__BISQ_DATA_PATH__"
+    "HOST": "127.0.0.1",
+    "PORT": 8081
   },
   "SOCKS5PROXY": {
     "ENABLED": true,
