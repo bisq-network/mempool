@@ -96,7 +96,8 @@
   },
   "BISQ": {
     "ENABLED": __BISQ_ENABLED__,
-    "DATA_PATH": "__BISQ_DATA_PATH__"
+    "HOST": "__BISQ_HOST__",
+    "PORT": __BISQ_PORT__
   },
   "LIGHTNING": {
     "ENABLED": __LIGHTNING_ENABLED__,

@@ -333,7 +333,8 @@ Corresponding `docker-compose.yml` overrides:
 ```json
   "BISQ": {
     "ENABLED": false,
-    "DATA_PATH": "/bisq/statsnode-data/btc_mainnet/db"
+    "HOST": "127.0.0.1",
+    "PORT": 8081
   }
 ```
 
@@ -342,7 +343,8 @@ Corresponding `docker-compose.yml` overrides:
   api:
     environment:
       BISQ_ENABLED: ""
-      BISQ_DATA_PATH: ""
+      HOST: ""
+      PORT: ""
       ...
 ```
 
