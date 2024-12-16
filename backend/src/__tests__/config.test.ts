@@ -108,7 +108,7 @@ describe('Mempool Backend Config', () => {
 
       expect(config.STATISTICS).toStrictEqual({ ENABLED: true, TX_PER_SECOND_SAMPLE_PERIOD: 150 });
 
-      expect(config.BISQ).toStrictEqual({ ENABLED: false, DATA_PATH: '/bisq/statsnode-data/btc_mainnet/db' });
+      expect(config.BISQ).toStrictEqual({ ENABLED: false, 'HOST': '127.0.0.1', 'PORT': 8081 });
 
       expect(config.SOCKS5PROXY).toStrictEqual({
         ENABLED: false,

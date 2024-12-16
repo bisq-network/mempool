@@ -33,6 +33,11 @@ export interface BisqStats {
   addresses: number;
   unspent_txos: number;
   spent_txos: number;
+  height: number;
+  genesisHeight: number;
+  _bsqPrice: number;
+  _usdPrice: number;
+  _marketCap: number;
 }
 
 interface BisqInput {

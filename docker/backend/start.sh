@@ -97,7 +97,8 @@ __STATISTICS_TX_PER_SECOND_SAMPLE_PERIOD__=${STATISTICS_TX_PER_SECOND_SAMPLE_PER
 
 # BISQ
 __BISQ_ENABLED__=${BISQ_ENABLED:=false}
-__BISQ_DATA_PATH__=${BISQ_DATA_PATH:=/bisq/statsnode-data/btc_mainnet/db}
+__BISQ_HOST__=${BISQ_HOST:=127.0.0.1}
+__BISQ_PORT__=${BISQ_PORT:=8081}
 
 # SOCKS5PROXY
 __SOCKS5PROXY_ENABLED__=${SOCKS5PROXY_ENABLED:=false}
@@ -249,7 +250,8 @@ sed -i "s!__STATISTICS_ENABLED__!${__STATISTICS_ENABLED__}!g" mempool-config.jso
 sed -i "s!__STATISTICS_TX_PER_SECOND_SAMPLE_PERIOD__!${__STATISTICS_TX_PER_SECOND_SAMPLE_PERIOD__}!g" mempool-config.json
 
 sed -i "s!__BISQ_ENABLED__!${__BISQ_ENABLED__}!g" mempool-config.json
-sed -i "s!__BISQ_DATA_PATH__!${__BISQ_DATA_PATH__}!g" mempool-config.json
+sed -i "s!__BISQ_HOST__!${__BISQ_HOST__}!g" mempool-config.json
+sed -i "s!__BISQ_PORT__!${__BISQ_PORT__}!g" mempool-config.json
 
 sed -i "s!__SOCKS5PROXY_ENABLED__!${__SOCKS5PROXY_ENABLED__}!g" mempool-config.json
 sed -i "s!__SOCKS5PROXY_USE_ONION__!${__SOCKS5PROXY_USE_ONION__}!g" mempool-config.json

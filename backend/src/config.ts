@@ -119,7 +119,8 @@ interface IConfig {
   };
   BISQ: {
     ENABLED: boolean;
-    DATA_PATH: string;
+    HOST: string;
+    PORT: number;
   };
   SOCKS5PROXY: {
     ENABLED: boolean;
@@ -262,7 +263,8 @@ const defaults: IConfig = {
   },
   'BISQ': {
     'ENABLED': false,
-    'DATA_PATH': '/bisq/statsnode-data/btc_mainnet/db'
+    'HOST': '127.0.0.1',
+    'PORT': 8081
   },
   'LIGHTNING': {
     'ENABLED': false,

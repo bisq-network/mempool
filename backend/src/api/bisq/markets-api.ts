@@ -1,5 +1,7 @@
 import { Currencies, OffersData, TradesData, Depth, Currency, Interval, HighLowOpenClose,
   Markets, Offers, Offer, BisqTrade, MarketVolume, Tickers, Ticker, SummarizedIntervals, SummarizedInterval } from './interfaces';
+import { Common } from '../common';
+import logger from '../../logger';
 
 const strtotime = require('./strtotime');
 
@@ -14,34 +16,51 @@ class BisqMarketsApi {
   private allCurrenciesIndexed: { [code: string]: Currency } = {};
   private tradeDataByMarket: { [market: string]: TradesData[] } = {};
   private tickersCache: Ticker | Tickers | null = null;
+  private priceUpdateCallbackFunction: ((price: number) => void) | undefined;
+  public bsqPrice: number = 0;
 
   constructor() { }
 
+  setPriceCallbackFunction(fn: (price: number) => void) {
+    this.priceUpdateCallbackFunction = fn;
+  }
+
   setOffersData(offers: OffersData[]) {
+    logger.debug(`setOffersData: Updating Bisq Market Offers Data with ${offers.length} records.`);
     this.offersData = offers;
   }
 
   setTradesData(trades: TradesData[]) {
-    this.tradesData = trades;
-    this.tradeDataByMarket = {};
-
-    this.tradesData.forEach((trade) => {
-      trade._market = trade.currencyPair.toLowerCase().replace('/', '_');
-      if (!this.tradeDataByMarket[trade._market]) {
-        this.tradeDataByMarket[trade._market] = [];
+    var tradesPre = this.tradesData.length;
+    trades.forEach((trade) => {
+      // ignore trade stats older than two years (performance reasons)
+      var oneYear = 1000*60*60*24*365*2;
+        if (trade.tradeDate > new Date().getTime() - oneYear) {
+        trade._market = trade.currencyPair.toLowerCase().replace('/', '_');
+        if (!this.tradeDataByMarket[trade._market]) {
+          this.tradeDataByMarket[trade._market] = [];
+        }
+        this.tradeDataByMarket[trade._market].push(trade);
+        this.tradesData.push(trade);
       }
-      this.tradeDataByMarket[trade._market].push(trade);
     });
+    this.tradesData = this.tradesData.sort(function(b, a) {
+      return (a.tradeDate < b.tradeDate) ? -1 : (a.tradeDate > b.tradeDate) ? 1 : 0;
+    });
+    logger.info(`Updated Bisq Market Trades Data, #${tradesPre} -> ${this.tradesData.length} records.  Newest: ${this.getNewestTradeDate()}`);
+    this.updateBsqPrice();  // whenever trades change, recalc BSQ price average
   }
 
-  setCurrencyData(cryptoCurrency: Currency[], fiatCurrency: Currency[], activeCryptoCurrency: Currency[], activeFiatCurrency: Currency[]) {
-    this.cryptoCurrencyData = cryptoCurrency,
-    this.fiatCurrencyData = fiatCurrency,
-    this.activeCryptoCurrencyData = activeCryptoCurrency,
-    this.activeFiatCurrencyData = activeFiatCurrency;
-
+  setCurrencyData(currencies: Currency[]) {
+    currencies.push( {'code': "BTC",'name': "Bitcoin", 'precision': 8, '_type': "crypto"} );
+    this.cryptoCurrencyData = currencies.filter( (x) => x._type === "crypto" );
+    this.fiatCurrencyData = currencies.filter( (x) => x._type === "fiat" );
+    this.activeCryptoCurrencyData = currencies.filter( (x) => x._type === "crypto" );
+    this.activeFiatCurrencyData = currencies.filter( (x) => x._type === "fiat" );
     this.fiatCurrenciesIndexed = {};
     this.allCurrenciesIndexed = {};
+
+    logger.debug(`setCurrencyData: Updating Bisq Market Currency Data with ${this.fiatCurrencyData.length} fiat and ${this.cryptoCurrencyData.length} cryptos.`);
 
     this.fiatCurrencyData.forEach((currency) => {
       currency._type = 'fiat';
@@ -55,13 +74,26 @@ class BisqMarketsApi {
   }
 
   updateCache() {
+    logger.debug("BisqMarketsApi updateCache");
     this.tickersCache = null;
     this.tickersCache = this.getTicker();
   }
 
-  getCurrencies(
-    type: 'crypto' | 'fiat' | 'active' | 'all' = 'all',
-  ): Currencies {
+  private updateBsqPrice() {
+    var trades: BisqTrade[] = this.getTrades("bsq_btc");
+    const prices: number[] = [];
+    trades.forEach((trade) => {
+      prices.push(parseFloat(trade.price));
+    });
+    prices.sort((a, b) => a - b);
+    this.bsqPrice = Common.median(prices);
+    if (this.priceUpdateCallbackFunction) {
+      this.priceUpdateCallbackFunction(this.bsqPrice * 100000000);  // for websockethandler storage
+    }
+    logger.debug(`Updated Bisq market price: ${this.bsqPrice}, ${prices.length} reference prices used.`);
+  }
+
+  getCurrencies(type: 'crypto' | 'fiat' | 'active' | 'all' = 'all',): Currencies {
     let currencies: Currency[];
 
     switch (type) {
@@ -115,7 +147,7 @@ class BisqMarketsApi {
     direction?: 'buy' | 'sell',
   ): Offers {
     const currencyPair = market.replace('_', '/').toUpperCase();
-
+    logger.warn(`getOffers: ${currencyPair}`);
     let buys: Offer[] | null = null;
     let sells: Offer[] | null = null;
 
@@ -142,7 +174,9 @@ class BisqMarketsApi {
   }
 
   getMarkets(): Markets {
+    var counter = 0;
     const allCurrencies = this.getCurrencies();
+
     const activeCurrencies = this.getCurrencies('active');
     const markets = {};
 
@@ -150,7 +184,6 @@ class BisqMarketsApi {
       if (allCurrencies[currency].code === 'BTC') {
         continue;
       }
-
       const isFiat = allCurrencies[currency]._type === 'fiat';
       const pmarketname = allCurrencies['BTC']['name'];
 
@@ -176,8 +209,9 @@ class BisqMarketsApi {
         'rtype': rtype,
         'name': lname + '/' + rname,
       };
+      counter++;
     }
-
+    logger.debug(`getMarkets returning ${Object.keys(markets).length} items`);
     return markets;
   }
 
@@ -191,40 +225,40 @@ class BisqMarketsApi {
     limit: number = 100,
     sort: 'asc' | 'desc' = 'desc',
   ): BisqTrade[] {
-      limit = Math.min(limit, 2000);
-      const _market = market === 'all' ? undefined : market;
+    limit = Math.min(limit, 2000);
+    const _market = market === 'all' ? undefined : market;
 
-      if (!timestamp_from) {
-        timestamp_from = new Date('2016-01-01').getTime() / 1000;
+    if (!timestamp_from) {
+      timestamp_from = new Date('2016-01-01').getTime() / 1000;
+    }
+    if (!timestamp_to) {
+      timestamp_to = new Date().getTime() / 1000;
+    }
+
+    const matches = this.getTradesByCriteria(_market, timestamp_to, timestamp_from,
+      trade_id_to, trade_id_from, direction, sort, limit, false);
+
+    if (sort === 'asc') {
+      matches.sort((a, b) => a.tradeDate - b.tradeDate);
+    } else {
+      matches.sort((a, b) => b.tradeDate - a.tradeDate);
+    }
+
+    return matches.map((trade) => {
+      const bsqTrade: BisqTrade = {
+        direction: trade.primaryMarketDirection,
+        price: trade._tradePriceStr,
+        amount: trade._tradeAmountStr,
+        volume: trade._tradeVolumeStr,
+        payment_method: trade.paymentMethod,
+        trade_id: trade.offerId,
+        trade_date: trade.tradeDate,
+      };
+      if (market === 'all') {
+        bsqTrade.market = trade._market;
       }
-      if (!timestamp_to) {
-        timestamp_to = new Date().getTime() / 1000;
-      }
-
-      const matches = this.getTradesByCriteria(_market, timestamp_to, timestamp_from,
-        trade_id_to, trade_id_from, direction, sort, limit, false);
-
-      if (sort === 'asc') {
-        matches.sort((a, b) => a.tradeDate - b.tradeDate);
-      } else {
-        matches.sort((a, b) => b.tradeDate - a.tradeDate);
-      }
-
-      return matches.map((trade) => {
-        const bsqTrade: BisqTrade = {
-          direction: trade.primaryMarketDirection,
-          price: trade._tradePriceStr,
-          amount: trade._tradeAmountStr,
-          volume: trade._tradeVolumeStr,
-          payment_method: trade.paymentMethod,
-          trade_id: trade.offerId,
-          trade_date: trade.tradeDate,
-        };
-        if (market === 'all') {
-          bsqTrade.market = trade._market;
-        }
-        return bsqTrade;
-      });
+      return bsqTrade;
+    });
   }
 
   getVolumes(
@@ -235,6 +269,7 @@ class BisqMarketsApi {
     milliseconds?: boolean,
     timestamp: 'no' | 'yes' = 'yes',
   ): MarketVolume[] {
+
     if (milliseconds) {
       timestamp_from = timestamp_from ? timestamp_from / 1000 : timestamp_from;
       timestamp_to = timestamp_to ? timestamp_to / 1000 : timestamp_to;
@@ -285,17 +320,20 @@ class BisqMarketsApi {
       }
     }
 
+    logger.debug(`getVolumes returning ${marketVolumes.length} items.`);
     return marketVolumes;
   }
 
   getTicker(
     market?: string,
   ): Tickers | Ticker | null {
+
     if (market) {
       return this.getTickerFromMarket(market);
     }
 
     if (this.tickersCache) {
+      logger.debug(`returning ${Object.keys(this.tickersCache).length} tickers from cache`);
       return this.tickersCache;
     }
 
@@ -306,7 +344,7 @@ class BisqMarketsApi {
         tickers[allMarkets[m].pair] = this.getTickerFromMarket(allMarkets[m].pair);
       }
     }
-
+    logger.debug(`returning ${Object.keys(tickers).length} tickers`);
     return tickers;
   }
 
@@ -314,17 +352,19 @@ class BisqMarketsApi {
     let ticker: Ticker;
     const timestamp_from = strtotime('-24 hour');
     const timestamp_to = new Date().getTime() / 1000;
-    const trades = this.getTradesByCriteria(market, timestamp_to, timestamp_from,
-      undefined, undefined, undefined, 'asc', Number.MAX_SAFE_INTEGER);
-
-    const periods: SummarizedInterval[] = Object.values(this.getTradesSummarized(trades, timestamp_from));
 
     const allCurrencies = this.getCurrencies();
     const currencyRight = allCurrencies[market.split('_')[1].toUpperCase()];
 
+    const trades = this.getTradesByCriteria(market, timestamp_to, timestamp_from,
+      undefined, undefined, undefined, 'asc', Number.MAX_SAFE_INTEGER);
+    const periods: SummarizedInterval[] = Object.values(this.getTradesSummarized(trades, timestamp_from));
+
+    const currencyLeft = allCurrencies[market.split('_')[0].toUpperCase()];
+    const livePrice = NaN; //bisqPriceService.getPrice(currencyRight.code === 'BTC' ? currencyLeft.code : currencyRight.code);
     if (periods[0]) {
       ticker = {
-        'last': this.intToBtc(periods[0].close),
+        'last': (isNaN(livePrice) ? this.intToBtc(periods[0].close) : '' + livePrice),
         'high': this.intToBtc(periods[0].high),
         'low': this.intToBtc(periods[0].low),
         'volume_left': this.intToBtc(periods[0].volume_left),
@@ -333,15 +373,14 @@ class BisqMarketsApi {
         'sell': null,
       };
     } else {
+      var lastTradePrice = this.intToBtc(0);
       const lastTrade = this.tradeDataByMarket[market];
-      if (!lastTrade) {
-        return null;
+      if (lastTrade) {
+         lastTradePrice = this.intToBtc(
+            lastTrade[0].primaryMarketTradePrice * Math.pow(10, 8 - currencyRight.precision));
       }
-      const tradePrice = lastTrade[0].primaryMarketTradePrice * Math.pow(10, 8 - currencyRight.precision);
-
-      const lastTradePrice = this.intToBtc(tradePrice);
       ticker = {
-        'last': lastTradePrice,
+        'last': (isNaN(livePrice) ? lastTradePrice : '' + livePrice),
         'high': lastTradePrice,
         'low': lastTradePrice,
         'volume_left': '0',
@@ -464,21 +503,22 @@ class BisqMarketsApi {
     const trades = this.getTradesByCriteria(undefined, timestamp_to, timestamp_from,
       undefined, undefined, undefined, 'asc', Number.MAX_SAFE_INTEGER);
 
-    const markets: any = {};
+    const volumes: any = {};
 
     for (const trade of trades) {
-      if (!markets[trade._market]) {
-        markets[trade._market] = {
+      if (!volumes[trade._market]) {
+        volumes[trade._market] = {
           'volume': 0,
           'num_trades': 0,
         };
       }
 
-      markets[trade._market]['volume'] += this.fiatCurrenciesIndexed[trade.currency] ? trade._tradeAmount : trade._tradeVolume;
-      markets[trade._market]['num_trades']++;
+      volumes[trade._market]['volume'] += this.fiatCurrenciesIndexed[trade.currency] ? trade._tradeAmount : trade._tradeVolume;
+      volumes[trade._market]['num_trades']++;
     }
 
-    return markets;
+    logger.debug(`VolumesByTime returning ${volumes.length} items.`);
+    return volumes;
   }
 
   private getTradesSummarized(trades: TradesData[], timestamp_from: number, interval?: string): SummarizedIntervals {
@@ -490,14 +530,14 @@ class BisqMarketsApi {
       const interval_start = !interval ? timestamp_from : this.intervalStart(traded_at, interval);
 
       if (!intervals[interval_start]) {
-          intervals[interval_start] = {
-            'open': 0,
-            'close': 0,
-            'high': 0,
-            'low': 0,
-            'avg': 0,
-            'volume_right': 0,
-            'volume_left': 0,
+        intervals[interval_start] = {
+          'open': 0,
+          'close': 0,
+          'high': 0,
+          'low': 0,
+          'avg': 0,
+          'volume_right': 0,
+          'volume_left': 0,
         };
         intervals_prices[interval_start] = [];
       }
@@ -515,19 +555,37 @@ class BisqMarketsApi {
       intervals_prices[interval_start]['rightvol'].push(trade._tradeVolume);
 
       if (price) {
-          const plow = period['low'];
-          period['period_start'] = interval_start;
-          period['open'] = period['open'] || price;
-          period['close'] = price;
-          period['high'] = price > period['high'] ? price : period['high'];
-          period['low'] = (plow && price > plow) ? period['low'] : price;
-          period['avg'] = intervals_prices[interval_start]['rightvol'].reduce((p: number, c: number) => c + p, 0)
-            / intervals_prices[interval_start]['leftvol'].reduce((c: number, p: number) => c + p, 0) * 100000000;
-          period['volume_left'] += trade._tradeAmount;
-          period['volume_right'] += trade._tradeVolume;
+        const plow = period['low'];
+        period['period_start'] = interval_start;
+        period['open'] = period['open'] || price;
+        period['close'] = price;
+        period['high'] = price > period['high'] ? price : period['high'];
+        period['low'] = (plow && price > plow) ? period['low'] : price;
+        period['avg'] = intervals_prices[interval_start]['rightvol'].reduce((p: number, c: number) => c + p, 0)
+          / intervals_prices[interval_start]['leftvol'].reduce((c: number, p: number) => c + p, 0) * 100000000;
+        period['volume_left'] += trade._tradeAmount;
+        period['volume_right'] += trade._tradeVolume;
       }
     }
     return intervals;
+  }
+
+  public getOldestTradeDate(): number {
+    const tradesDataSorted = this.tradesData.slice();
+    let ts = tradesDataSorted.at(-1);
+    if (ts) {
+        return ts.tradeDate;
+    }
+    return 0;
+  }
+
+  public getNewestTradeDate(): number {
+    const tradesDataSorted = this.tradesData.slice();
+    let ts = tradesDataSorted.at(0);
+    if (ts) {
+        return ts.tradeDate;
+    }
+    return 0;
   }
 
   private getTradesByCriteria(
@@ -627,28 +685,28 @@ class BisqMarketsApi {
 
   private intervalStart(ts: number, interval: string): number {
     switch (interval) {
-        case 'minute':
-            return (ts - (ts % 60));
-        case '10_minute':
-            return (ts - (ts % 600));
-        case 'half_hour':
-            return (ts - (ts % 1800));
-        case 'hour':
-            return (ts - (ts % 3600));
-        case 'half_day':
-            return (ts - (ts % (3600 * 12)));
-        case 'day':
-            return strtotime('midnight today', ts);
-        case 'week':
-            return strtotime('midnight sunday last week', ts);
-        case 'month':
-            return strtotime('midnight first day of this month', ts);
-        case 'year':
-            return strtotime('midnight first day of january', ts);
-        default:
-            throw new Error('Unsupported interval');
+      case 'minute':
+        return (ts - (ts % 60));
+      case '10_minute':
+        return (ts - (ts % 600));
+      case 'half_hour':
+        return (ts - (ts % 1800));
+      case 'hour':
+        return (ts - (ts % 3600));
+      case 'half_day':
+        return (ts - (ts % (3600 * 12)));
+      case 'day':
+        return strtotime('midnight today', ts);
+      case 'week':
+        return strtotime('midnight sunday last week', ts);
+      case 'month':
+        return strtotime('midnight first day of this month', ts);
+      case 'year':
+        return strtotime('midnight first day of january', ts);
+      default:
+        throw new Error('Unsupported interval');
     }
-}
+  }
 
   private offerDataToOffer(offer: OffersData, market: string): Offer {
     const currencyPairs = market.split('_');
