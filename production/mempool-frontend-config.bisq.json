@@ -1,6 +1,6 @@
 {
   "BASE_MODULE": "bisq",
-  "OFFICIAL_MEMPOOL_SPACE": true,
+  "OFFICIAL_MEMPOOL_SPACE": false,
   "TESTNET_ENABLED": true,
   "LIQUID_ENABLED": true,
   "LIQUID_TESTNET_ENABLED": true,

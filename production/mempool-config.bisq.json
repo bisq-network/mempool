@@ -1,6 +1,6 @@
 {
   "MEMPOOL": {
-    "OFFICIAL": true,
+    "OFFICIAL": false,
     "NETWORK": "bisq",
     "BACKEND": "esplora",
     "HTTP_PORT": 8996,
@@ -20,9 +20,9 @@
     "UNIX_SOCKET_PATH": "/bitcoin/socket/esplora-bitcoin-mainnet"
   },
   "DATABASE": {
-    "ENABLED": false,
+    "ENABLED": true,
     "HOST": "127.0.0.1",
-    "SOCKET": "/var/run/mysql/mysql.sock",
+    "SOCKET": "__DB_SOCKET__",
     "USERNAME": "__MEMPOOL_BISQ_USER__",
     "PASSWORD": "__MEMPOOL_BISQ_PASS__",
     "DATABASE": "mempool_bisq"
@@ -33,6 +33,6 @@
   },
   "BISQ": {
     "ENABLED": true,
-    "DATA_PATH": "/bisq/statsnode-data/btc_mainnet/db"
+    "DATA_PATH": "/bisq/bisq-statsnode/btc_mainnet/db"
   }
 }
